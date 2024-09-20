@@ -1,0 +1,206 @@
+# @package task
+paths:
+  style_path: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN"
+  trained_RNNs_path: "/Users/tolmach/Documents/GitHub/trainRNNbrain/data/trained_RNNs"
+  RNN_datasets_path: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/data/RNN_datasets"
+  auxilliary_datasets_path: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/data/auxilliary_datasets/MemoryNumber"
+  img_folder: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/img/MemoryNumber"
+  feature_datasets_folder: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/data/feature_datasets/MemoryNumber"
+  fixed_points_data_folder: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/data/fixed_points/MemoryNumber"
+
+taskname : 'MemoryNumber'
+dt: 1
+tau: 10
+_target_: "trainRNNbrain.tasks.TaskMemoryNumber.TaskMemoryNumber"
+T: 120
+seed: null
+T_stim_on: 20
+T_stim_duration: 10
+T_random_window: 0
+T_recall_on: 60
+T_recall_off: 120
+n_inputs: 3
+n_outputs: 1
+batch_size: 11
+mask_params:
+  - (0, 60)
+  - (80, 120)
+task_params: ["n_steps",
+              "n_inputs", "n_outputs",
+              "stim_on", "stim_off",
+              "recall_on", "recall_off",
+              "batch_size"]
+
+dataset_filtering_params:
+  relu_filters:
+    activation_slope: 1.0
+    mfr_thr: 0.02
+    std_thr: 0.02
+    downsample_window: 10
+    RNN_score_filter: 0.01
+    constrained: True
+    lambda_r: 0.3
+    n_steps: 120
+
+  sigmoid_filters:
+    activation_slope: 7.5
+    mfr_thr: 0.02
+    std_thr: 0.02
+    RNN_score_filter: 0.01
+    constrained: True
+    lambda_r: 0.3
+    n_steps: 120
+
+  tanh_filters:
+    activation_slope: 1
+    mfr_thr: 0.02
+    std_thr: 0.02
+    RNN_score_filter: 0.01
+    constrained: True
+    lambda_r: 0.3
+    n_steps: 120
+
+
+trajectory_analysis_params:
+  n_PCs: 10
+  n_nets: 30
+  distance_metric: "MSE"
+  dist_mat_plot_lower_bound: 0.0
+  save_figures: True
+  trajectory_plot_params:
+    colors: [ "blue", "blue", "blue", "blue", "blue",
+              "magenta",
+              "red", "red", "red", "red", "red" ]
+    alphas: [ 1.0, 1.0, 1.0, 1.0, 1.0,
+              1.0,
+              1.0, 1.0, 1.0, 1.0, 1.0 ]
+
+neurreps_analysis_params:
+  n_PCs: 10
+
+stimreps_analysis_params:
+  n_PCs: 10
+
+dynamical_topology_analysis:
+  n_PCs: 7
+  fp_search_params:
+    fun_tol: 1e-4
+    diff_cutoff: 5e-2
+    sigma_init_guess: 0.01
+    patience: 100
+    stop_length: 50
+    mode: "exact"
+  inputs:
+    - [ 0.0, 1.0, 1.0 ]
+    - [ 0.1, 1.0, 1.0 ]
+    - [ 0.2, 1.0, 1.0 ]
+    - [ 0.3, 1.0, 1.0 ]
+    - [ 0.4, 1.0, 1.0 ]
+    - [ 0.5, 1.0, 1.0 ]
+    - [ 0.6, 1.0, 1.0 ]
+    - [ 0.7, 1.0, 1.0 ]
+    - [ 0.8, 1.0, 1.0 ]
+    - [ 0.9, 1.0, 1.0 ]
+    - [ 1.0, 1.0, 1.0 ]
+    - [ 0.0, 0.0, 1.0 ]
+    - [ 0.1, 0.0, 1.0 ]
+    - [ 0.2, 0.0, 1.0 ]
+    - [ 0.3, 0.0, 1.0 ]
+    - [ 0.4, 0.0, 1.0 ]
+    - [ 0.5, 0.0, 1.0 ]
+    - [ 0.6, 0.0, 1.0 ]
+    - [ 0.7, 0.0, 1.0 ]
+    - [ 0.8, 0.0, 1.0 ]
+    - [ 0.9, 0.0, 1.0 ]
+    - [ 1.0, 0.0, 1.0 ]
+  colors:
+    - [[0.3, 0.4, 0.8], [0.3, 0.4, 0.8]] # 1
+    - [[0.4, 0.48, 0.8], [0.4, 0.48, 0.8]] # 2
+    - [[0.5, 0.56, 0.8], [0.5, 0.56, 0.8]] # 3
+    - [[0.6, 0.64, 0.8], [0.6, 0.64, 0.8]] # 4
+    - [[0.7, 0.72, 0.8], [0.7, 0.72, 0.8]] # 5
+    - [[0.8, 0.8, 0.8], [0.8, 0.8, 0.8]] # 6
+    - [[0.8, 0.68, 0.7], [0.8, 0.68, 0.7]] # 7
+    - [[0.8, 0.56, 0.6], [0.8, 0.56, 0.6]] # 8
+    - [[0.8, 0.44, 0.5], [0.8, 0.44, 0.5]] # 9
+    - [[0.8, 0.32, 0.4], [0.8, 0.32, 0.4]] # 10
+    - [[0.8, 0.2, 0.3], [0.8, 0.2, 0.3]] # 11
+    - [[0.3, 0.4, 0.8], [0.3, 0.4, 0.8]] # 1
+    - [[0.4, 0.48, 0.8], [0.4, 0.48, 0.8]] # 2
+    - [[0.5, 0.56, 0.8], [0.5, 0.56, 0.8]] # 3
+    - [[0.6, 0.64, 0.8], [0.6, 0.64, 0.8]] # 4
+    - [[0.7, 0.72, 0.8], [0.7, 0.72, 0.8]] # 5
+    - [[0.8, 0.8, 0.8], [0.8, 0.8, 0.8]] # 6
+    - [[0.8, 0.68, 0.7], [0.8, 0.68, 0.7]] # 7
+    - [[0.8, 0.56, 0.6], [0.8, 0.56, 0.6]] # 8
+    - [[0.8, 0.44, 0.5], [0.8, 0.44, 0.5]] # 9
+    - [[0.8, 0.32, 0.4], [0.8, 0.32, 0.4]] # 10
+    - [[0.8, 0.2, 0.3], [0.8, 0.2, 0.3]] # 11
+  edgecolors: None
+  markers:
+    - [ "o", "*" ]
+    - [ "o", "*" ]
+    - [ "o", "*" ]
+    - [ "o", "*" ]
+    - [ "o", "*" ]
+    - [ "o", "*" ]
+    - [ "o", "*" ]
+    - [ "o", "*" ]
+    - [ "o", "*" ]
+    - [ "o", "*" ]
+    - [ "o", "*" ]
+    - [ "p", "X" ]
+    - [ "p", "X" ]
+    - [ "p", "X" ]
+    - [ "p", "X" ]
+    - [ "p", "X" ]
+    - [ "p", "X" ]
+    - [ "p", "X" ]
+    - [ "p", "X" ]
+    - [ "p", "X" ]
+    - [ "p", "X" ]
+    - [ "p", "X" ]
+
+feature_extraction_params:
+  downsample_window: 10
+  Trajectory:
+    "zscore": True
+    "normalize": False
+    "do_pca": True
+    "var_thr": 0.99
+  "Connectivity":
+    "zscore": True
+    "normalize": False
+    "do_pca": True
+    "var_thr": 0.99
+#
+#DSA_params:
+#  n_nets: 10
+#  n_delays: 11
+#  rank: 30
+#
+#representations_analysis:
+#  max_iter: 20
+#  gamma: 0.2
+#  increase_gamma: False
+#  cluster_scoring_method: "DaviesBouldin"
+#  selection_criteria: "knee"
+#  min_clusters: 3
+#  max_clusters: 12
+#  n_repeats: 5
+#  thr: 0.2
+#  save_figures: True
+#  show_figures: True
+#  relu_nets:
+#    connectivity_importance_factor: 1
+#    nrn_type_importance_factor: 0.25
+#  tanh_nets:
+#    connectivity_importance_factor: 1
+#    nrn_type_importance_factor: 0.25
+#  sigmoid_nets:
+#    connectivity_importance_factor: 1
+#    nrn_type_importance_factor: 0.25
+
+
+
+

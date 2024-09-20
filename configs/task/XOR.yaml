@@ -1,0 +1,126 @@
+# @package task
+
+taskname : 'XOR'
+
+paths:
+  style_path: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN"
+  trained_RNNs_path: "/Users/tolmach/Documents/GitHub/trainRNNbrain/data/trained_RNNs"
+  RNN_datasets_path: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/data/RNN_datasets"
+  auxilliary_datasets_path: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/data/auxilliary_datasets/${taskname}"
+  img_folder: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/img/${taskname}"
+  feature_datasets_folder: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/data/feature_datasets/${taskname}"
+  fixed_points_data_folder: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/data/fixed_points/${taskname}"
+
+dt: 1
+tau: 10
+_target_: "trainRNNbrain.tasks.Task${.taskname}.Task${.taskname}"
+T: 150
+seed: null
+T_stim_on: 0
+T_stim_off: ${.T}
+T_dec_on: '${eval:${.T}//10}'
+T_dec_off: ${.T}
+n_inputs: 4
+n_outputs: 2
+n_rep: 1
+
+mask_params:
+  - (${..T_dec_on}, ${..T})
+
+task_params: ["n_steps",
+              "n_inputs", "n_outputs",
+              "stim_on", "stim_off", "dec_on", "dec_off",
+              "n_rep"]
+
+dataset_filtering_params:
+  relu_filters:
+    activation_slope: 1.0
+    mfr_thr: 0.04
+    std_thr: 0.04
+    RNN_score_filter: 0.009
+    constrained: True
+    lambda_r: 0.3
+    n_steps: 150
+
+  sigmoid_filters:
+    activation_slope: 7.5
+    mfr_thr: 0.02
+    std_thr: 0.02
+    RNN_score_filter: 0.01
+    constrained: True
+    lambda_r: 0.3
+    n_steps: 150
+
+  tanh_filters:
+    activation_slope: 1.0
+    mfr_thr: 0.02
+    std_thr: 0.02
+    RNN_score_filter: 0.035
+    constrained: True
+    lambda_r: 0.3
+    n_steps: 150
+
+dynamical_topology_analysis:
+  fp_search_params:
+    fun_tol: 1e-4
+    diff_cutoff: 1e-3
+    sigma_init_guess: 0.01
+    patience: 100
+    stop_length: 50
+    mode: "exact"
+  inputs:
+    - [1.0, 0.0, 1.0, 0.0]
+    - [1.0, 0.0, 0.0, 1.0]
+    - [0.0, 1.0, 1.0, 0.0]
+    - [0.0, 1.0, 0.0, 1.0]
+  colors:
+    - ["blue", "red"]
+    - ["purple", "magenta"]
+    - ["violet", "salmon"]
+    - ["deepskyblue", "orange"]
+  n_dims_fp_registration: 10
+
+trajectory_analysis_params:
+  n_nets: 30
+  distance_metric: "MSE"
+  dist_mat_plot_lower_bound: 0.0
+  save_figures: True
+  trajectory_plot_params:
+    colors: ["red", "purple", "violet", "orange"]
+    alphas: [1.0, 1.0, 1.0, 1.0]
+
+feature_extraction_params:
+  downsample_window: 10
+  Trajectory:
+    "zscore": True
+    "normalize": False
+    "do_pca": True
+    "var_thr": 0.99
+  "Connectivity":
+    "zscore": True
+    "normalize": False
+    "do_pca": True
+    "var_thr": 0.99
+
+representations_analysis:
+  max_iter: 20
+  gamma: 0.2
+  increase_gamma: False
+  cluster_scoring_method: "DaviesBouldin"
+  selection_criteria: "knee"
+  min_clusters: 9
+  max_clusters: 18
+  n_repeats: 11
+  thr: 0.2
+  save_figures: True
+  show_figures: True
+  relu_nets:
+    connectivity_importance_factor: 1
+    nrn_type_importance_factor: 0.5
+  tanh_nets:
+    connectivity_importance_factor: 1
+    nrn_type_importance_factor: 0.5
+  sigmoid_nets:
+    connectivity_importance_factor: 1
+    nrn_type_importance_factor: 0.5
+
