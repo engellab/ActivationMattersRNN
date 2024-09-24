@@ -7,13 +7,13 @@ from activation_matters.plots.ploting_utils import interpolate_color, plot_proje
 import hydra
 from omegaconf import OmegaConf
 from style.style_setup import set_up_plotting_styles
-OmegaConf.register_new_resolver("eval", eval)
 import pickle
+OmegaConf.register_new_resolver("eval", eval)
 
 
-taskname = "MemoryNumber"
-show = False
-save = True
+taskname = "CDDM"
+show = True
+save = False
 n_nets = 5
 
 # @hydra.main(version_base="1.3", config_path=f"../../configs/task/", config_name=f'{taskname}')

@@ -2,7 +2,7 @@
 paths:
   style_path: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN"
   trained_RNNs_path: "/Users/tolmach/Documents/GitHub/trainRNNbrain/data/trained_RNNs"
-  RNN_datasets_path: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/data/RNN_datasets"
+  dataset_path: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/data/RNN_datasets"
   auxilliary_datasets_path: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/data/auxilliary_datasets/CDDM"
   img_folder: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/img/CDDM"
   feature_datasets_folder: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/data/feature_datasets/CDDM"
