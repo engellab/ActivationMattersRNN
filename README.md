@@ -2,10 +2,10 @@
 
 This repository contains the code for running analysis on how the seemingly inconsequential RNN design-choices affect the dynamics, trajectories, neural tuning and, finally, behavior.
 
-### Setting up config
+### Setting up config files
 
 You would require to set the paths in the `congigs/task` files.
-Make sure to modify the following, setting an absolute path:
+Make sure to modify the following, setting *absolute* paths:
 
 - dataset_path (contains the top 30 RNNs, located in `../data/RNN_datasets`)
 - auxilliary_datasets_path (`../data/auxilliary_datasets)`

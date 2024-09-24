@@ -171,6 +171,9 @@ activation_matters/analysis/outputs/2024-04-12/15-05-36/.hydra/hydra.yaml
 !/data/RNN_datasets/CDDMtop30.pkl
 !/data/RNN_datasets/GoNoGotop30.pkl
 !/data/RNN_datasets/MemoryNumber_top30.pkl
+!/data/latent_circuits/LC_data_of_top_10RNNs_CDDM.pkl
+!/data/latent_circuits/LC_data_of_top_10RNNs_GoNoGo.pkl
+!/data/latent_circuits/LC_data_of_top_10RNNs_MemoryNumber.pkl
 /img
 /style
 /activation_matters/analysis/connectivity_analysis_TO_REFACTOR.py
