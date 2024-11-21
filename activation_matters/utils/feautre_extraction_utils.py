@@ -7,7 +7,8 @@ from itertools import chain
 
 
 def get_dataset(file_str, filters):
-    df = pickle.load(open(file_str, 'rb+'))
+    dale_filter = "Dale="+str(filters["constrained"][1])
+    df = pickle.load(open(file_str, 'rb+'))[filters["activation_name"][1]][dale_filter]
     for attribute in list(filters.keys()):
         operand, value = filters[attribute]
         if type(value) == str:

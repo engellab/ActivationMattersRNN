@@ -43,6 +43,13 @@ def analysis_of_trajectories(cfg):
     aux_datasets_folder = f"{cfg.task.paths.auxilliary_datasets_path}"
     dataset = pickle.load(open(dataset_path, "rb"))
     n_PCs = cfg.task.trajectory_analysis_params.n_PCs
+    #printing RNN scores for top 30 networks
+    for activation in dataset.keys():
+        for constraint in dataset[activation].keys():
+            scores = dataset[activation][constraint]["RNN_score"]
+            m = np.mean(scores)
+            s = np.std(scores)
+            print(f"{activation}, {constraint} score = {np.round(m, 5)} +- {np.round(s, 5)}")
 
     # defining the task
     task_conf = prepare_task_arguments(cfg_task=cfg.task, dt=cfg.task.dt)

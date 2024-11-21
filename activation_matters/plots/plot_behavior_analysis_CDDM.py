@@ -15,7 +15,10 @@ import hydra
 OmegaConf.register_new_resolver("eval", eval)
 
 
+from matplotlib import rcParams
 
+# Set global font properties
+rcParams['font.family'] = 'helvetica'
 def create_optimized_divergent_colormap():
     # Define the colors: soft red, white, soft green, and soft blue
     cdict = {
@@ -100,14 +103,14 @@ def plot_psychometric_data(psychometric_data, show=True, save=False, path=None):
     return None
 
 
-n_nets = 1
+n_nets = 10
 taskname = "CDDM"
-show = True
+show = False
 save = True
 @hydra.main(version_base="1.3", config_path=f"../../configs/task", config_name=f'{taskname}')
 def analyze_behavior(cfg):
     # set_up_plotting_styles(cfg.task.paths.style_path)
-    file_str = os.path.join(cfg.task.paths.RNN_datasets_path, f"{taskname}.pkl")
+    file_str = os.path.join(cfg.task.paths.RNN_dataset_path, f"{taskname}_top30.pkl")
     data_save_folder = cfg.task.paths.fixed_points_data_folder
     img_save_folder = cfg.task.paths.img_folder
 
@@ -117,7 +120,7 @@ def analyze_behavior(cfg):
     coh_bounds = (-4, 4)
     DF_dict = {}
     connectivity_dict = {}
-    for activation_name in ["relu", "tanh"]:
+    for activation_name in ["relu"]:
         for constrained in [True]:
             activation_slope = eval(f"cfg.task.dataset_filtering_params.{activation_name}_filters.activation_slope")
             filters = {"activation_name": ("==", activation_name),
@@ -132,8 +135,9 @@ def analyze_behavior(cfg):
             connectivity_dict[activation_name]["inp"] = DF_dict[activation_name]["W_inp_RNN"].tolist()
             connectivity_dict[activation_name]["rec"] = DF_dict[activation_name]["W_rec_RNN"].tolist()
             connectivity_dict[activation_name]["out"] = DF_dict[activation_name]["W_out_RNN"].tolist()
-
+            folder_names = DF_dict[activation_name]["folder"].tolist()
             for i in range(n_nets):
+                print(folder_names[i])
                 W_inp = connectivity_dict[activation_name]["inp"][i]
                 W_rec = connectivity_dict[activation_name]["rec"][i]
                 W_out = connectivity_dict[activation_name]["out"][i]
@@ -156,7 +160,7 @@ def analyze_behavior(cfg):
                 pa = PerformanceAnalyzerCDDM(rnn)
                 pa.calc_psychometric_data(task, mask,
                                           num_levels=31,
-                                          coh_bouds=coh_bounds,
+                                          coh_bounds=coh_bounds,
                                           num_repeats=7,
                                           sigma_rec=0.03,
                                           sigma_inp=0.03)

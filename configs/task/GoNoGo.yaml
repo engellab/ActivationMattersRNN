@@ -3,7 +3,8 @@
 paths:
   style_path: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN"
   trained_RNNs_path: "/Users/tolmach/Documents/GitHub/trainRNNbrain/data/trained_RNNs"
-  RNN_datasets_path: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/data/RNN_datasets"
+  RNN_dataset_path: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/data/RNN_datasets"
+  LC_dataset_path: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/data/latent_circuits"
   auxilliary_datasets_path: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/data/auxilliary_datasets/GoNoGo"
   img_folder: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/img/GoNoGo"
   feature_datasets_folder: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/data/feature_datasets/GoNoGo"
