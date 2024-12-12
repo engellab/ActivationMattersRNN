@@ -14,7 +14,7 @@ Make sure to modify the following, setting *absolute* paths:
 
 ### Dependencies
 
-This package relies on a [`trainRNNbrain`](link) package, make sure to download it and install it locally by running `python -m pip install -e ./` from the `trainRNNbrain` folder.
+This package relies on a [`trainRNNbrain`](https://github.com/engellab/trainRNNbrain) package, make sure to download it and install it locally by running `python -m pip install -e ./` from the `trainRNNbrain` folder.
 
 ### How to run the analysis
 
