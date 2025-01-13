@@ -19,7 +19,7 @@ save = True
 @hydra.main(version_base="1.3", config_path=f"../../configs/task", config_name=f'{taskname}')
 def calc_fp(cfg):
     taskname = cfg.task.taskname
-    dataset_path = os.path.join(f"{cfg.task.paths.dataset_path}", f"{taskname}_top30.pkl")
+    dataset_path = os.path.join(f"{cfg.task.paths.RNN_dataset_path}", f"{taskname}_top30.pkl")
     dataset = pickle.load(open(dataset_path, "rb"))
     data_save_folder = cfg.task.paths.fixed_points_data_folder
 

@@ -69,7 +69,7 @@ save = False
 @hydra.main(version_base="1.3", config_path=f"../../configs/task", config_name=f'{taskname}')
 def analysis_of_neural_representations(cfg):
     taskname = cfg.task.taskname
-    dataset_path = os.path.join(f"{cfg.task.paths.dataset_path}", f"{taskname}_top30.pkl")
+    dataset_path = os.path.join(f"{cfg.task.paths.RNN_dataset_path}", f"{taskname}_top30.pkl")
     aux_datasets_folder = f"{cfg.task.paths.auxilliary_datasets_path}"
     dataset = pickle.load(open(dataset_path, "rb"))
 

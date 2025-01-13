@@ -11,8 +11,8 @@ OmegaConf.register_new_resolver("eval", eval)
 import pickle
 
 taskname = "CDDM"
-show = True
-save = False
+show = False
+save = True
 n_nets = 10
 n_dim = 2
 
@@ -40,20 +40,20 @@ def visualize_stimreps(cfg: OmegaConf):
     inds_list = data_dict["inds_list"]
     RNN_stimreps_list = data_dict["PCA_stimuli_list"]
     # plotting the trajectories
-    for k, legend in enumerate(legends):
-        # if "shuffle=False" in legend:
-        for axes in [[0, 1, 2], [0, 2, 3], [1, 2, 3]]:
-            for i in range(n_nets):
-                stimuli_representations = RNN_stimreps_list[inds_list[k][i]]
-                path = os.path.join(img_folder, f"{taskname}_stimuli_representations_{legend}_{axes}_{i}.pdf")
-                plot_stimuli_representations(PCA_stimuli=stimuli_representations,
-                                             face_colors=face_colors,
-                                             edge_colors=edge_colors,
-                                             markers=markers,
-                                             s=70,
-                                             show=False,
-                                             save=save,
-                                             path=path, n_dim=n_dim)
+    # for k, legend in enumerate(legends):
+    #     # if "shuffle=False" in legend:
+    #     for axes in [[0, 1, 2], [0, 2, 3], [1, 2, 3]]:
+    #         for i in range(n_nets):
+    #             stimuli_representations = RNN_stimreps_list[inds_list[k][i]]
+    #             path = os.path.join(img_folder, f"{taskname}_stimuli_representations_{legend}_{axes}_{i}.pdf")
+    #             plot_stimuli_representations(PCA_stimuli=stimuli_representations,
+    #                                          face_colors=face_colors,
+    #                                          edge_colors=edge_colors,
+    #                                          markers=markers,
+    #                                          s=70,
+    #                                          show=False,
+    #                                          save=save,
+    #                                          path=path, n_dim=n_dim)
 
     # VISUALIZE MDS EMBEDDING OF TRAJECTORIES
     Mat = pickle.load(open(os.path.join(aux_datasets_folder, "stimrep_similarity_matrix.pkl"), "rb"))

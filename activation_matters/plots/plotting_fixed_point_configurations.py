@@ -15,7 +15,7 @@ from tqdm.auto import tqdm
 os.system('python ../../style/style_setup.py')
 OmegaConf.register_new_resolver("eval", eval)
 
-taskname = "MemoryNumber"
+taskname = "CDDM"
 n_dim = 2
 n_nets_MDS = 30
 save = True
@@ -73,42 +73,42 @@ def plot_fixed_point_configurations(cfg):
     #                              show=show,
     #                              path=path)
     #
-    fp_dict_combined = {}
-    fp_dict_combined["fp_list"] = []
-    fp_dict_combined["labels_list"] = []
-    legends = []
-    inds_list = []
-    cnt = 0
-    for net_type in net_types:
-        for constrained in [True, False]:
-            for shuffle in [False]:
-                fp_dict = data_dict[net_type][f"constrained={constrained}"][f"shuffle={shuffle}"]
-                # take only n_nets_MDS
-                n_nets = len(fp_dict["fp_list"])
-                n_nets_taken = min([n_nets_MDS, n_nets])
-                fp_dict_combined["fp_list"].extend([fp_dict["fp_list"][i] for i in range(n_nets_taken)])
-                fp_dict_combined["labels_list"].extend([fp_dict["labels_list"][i] for i in range(n_nets_taken)])
-                inds_list.append(cnt + np.arange(n_nets_taken))
-                cnt += n_nets_taken
-                legends.append(f"{net_type}_constrained={constrained}")
-
-                # plot fixed points individually:
-                for i in range(n_nets):
-                    path = os.path.join(img_save_folder, f"fp_struct_{net_type}_constrained={constrained}_shuffle={shuffle}_net={i}.pdf")
-                    plot_fixed_points(fixed_point_struct=fp_dict["fp_list"][i], fp_labels=fp_dict["labels_list"][i],
-                                      colors=colors,
-                                      markers=markers,
-                                      edgecolors=edgecolors,
-                                      n_dim=2, show=show, save=save, path=path)
-                    path = os.path.join(img_save_folder, f"fp_struct3D_{net_type}_constrained={constrained}_shuffle={shuffle}_net={i}.pdf")
-                    plot_fixed_points(fixed_point_struct=fp_dict["fp_list"][i], fp_labels=fp_dict["labels_list"][i],
-                                      colors=colors,
-                                      markers=markers,
-                                      edgecolors=edgecolors,
-                                      n_dim=3, show=show, save=save, path=path)
-    fp_dict_combined["inds_list"] = inds_list
-    fp_dict_combined["legends"] = legends
-    pickle.dump(fp_dict_combined, open(os.path.join(aux_datasets_folder, "FP_similarity.pkl"), "wb+"))
+    # fp_dict_combined = {}
+    # fp_dict_combined["fp_list"] = []
+    # fp_dict_combined["labels_list"] = []
+    # legends = []
+    # inds_list = []
+    # cnt = 0
+    # for net_type in net_types:
+    #     for constrained in [True, False]:
+    #         for shuffle in [False]:
+    #             fp_dict = data_dict[net_type][f"constrained={constrained}"][f"shuffle={shuffle}"]
+    #             # take only n_nets_MDS
+    #             n_nets = len(fp_dict["fp_list"])
+    #             n_nets_taken = min([n_nets_MDS, n_nets])
+    #             fp_dict_combined["fp_list"].extend([fp_dict["fp_list"][i] for i in range(n_nets_taken)])
+    #             fp_dict_combined["labels_list"].extend([fp_dict["labels_list"][i] for i in range(n_nets_taken)])
+    #             inds_list.append(cnt + np.arange(n_nets_taken))
+    #             cnt += n_nets_taken
+    #             legends.append(f"{net_type}_constrained={constrained}")
+    #
+    #             # plot fixed points individually:
+    #             for i in range(n_nets):
+    #                 path = os.path.join(img_save_folder, f"fp_struct_{net_type}_constrained={constrained}_shuffle={shuffle}_net={i}.pdf")
+    #                 plot_fixed_points(fixed_point_struct=fp_dict["fp_list"][i], fp_labels=fp_dict["labels_list"][i],
+    #                                   colors=colors,
+    #                                   markers=markers,
+    #                                   edgecolors=edgecolors,
+    #                                   n_dim=2, show=show, save=save, path=path)
+    #                 path = os.path.join(img_save_folder, f"fp_struct3D_{net_type}_constrained={constrained}_shuffle={shuffle}_net={i}.pdf")
+    #                 plot_fixed_points(fixed_point_struct=fp_dict["fp_list"][i], fp_labels=fp_dict["labels_list"][i],
+    #                                   colors=colors,
+    #                                   markers=markers,
+    #                                   edgecolors=edgecolors,
+    #                                   n_dim=3, show=show, save=save, path=path)
+    # fp_dict_combined["inds_list"] = inds_list
+    # fp_dict_combined["legends"] = legends
+    # pickle.dump(fp_dict_combined, open(os.path.join(aux_datasets_folder, "FP_similarity.pkl"), "wb+"))
 
     fp_dict_combined = pickle.load(open(os.path.join(aux_datasets_folder, f"FP_similarity_normalized={normalized}.pkl"), "rb+"))
     fp_list = fp_dict_combined["fp_list"]
@@ -135,7 +135,7 @@ def plot_fixed_point_configurations(cfg):
         mds = MDS(n_components=2, dissimilarity='precomputed', n_init=101, eps=1e-6, max_iter=1000)
         mds.fit(Mat)
         embedding = mds.embedding_
-        path = os.path.join(img_save_folder, f"MDS_fp_attempt={attempt}_nPCs={n_components}_normalized={normalized}.pdf")
+        path = os.path.join(img_save_folder, f"MDS_fp_attempt={attempt}_nPCs={n_components}_normalized={normalized}_horizontal.pdf")
         plot_embedding(embedding, inds_list, legends, colors, hatch, markers,
                        show_legends=False, save=save, path=path, show=show)
 

@@ -113,7 +113,7 @@ def plot_similarity_matrix(Mat, save=False, path=None, show=True):
 
 def plot_embedding(embedding, inds_list, legends, colors, hatch=None, markers=None,
                    show_legends=False, save=False, path=None, show=True, ncols=3):
-    fig = plt.figure(figsize=(90 * mm, 90 * mm))
+    fig = plt.figure(figsize=(150 * mm, 90 * mm))
     ax = fig.add_subplot(1, 1, 1)
 
     if hatch is None:

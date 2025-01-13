@@ -12,8 +12,8 @@ OmegaConf.register_new_resolver("eval", eval)
 
 
 taskname = "CDDM"
-show = True
-save = False
+show = False
+save = True
 n_nets = 5
 
 # @hydra.main(version_base="1.3", config_path=f"../../configs/task/", config_name=f'{taskname}')
@@ -82,7 +82,7 @@ def plot_trajectories(cfg: OmegaConf):
         mds = MDS(n_components=2, dissimilarity='precomputed', n_init=101, eps=1e-6, max_iter=1000)
         mds.fit(Mat)
         embedding = mds.embedding_
-        path = os.path.join(img_folder, f"MDS_trajectory_attempt={attempt}.pdf")
+        path = os.path.join(img_folder, f"MDS_trajectory_attempt={attempt}_horizontal.pdf")
         plot_embedding(embedding, inds_list, legends, colors, hatch, markers,
                        show_legends=False, save=save, path=path, show=show)
 

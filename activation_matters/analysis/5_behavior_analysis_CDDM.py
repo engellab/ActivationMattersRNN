@@ -19,7 +19,7 @@ save = False
 @hydra.main(version_base="1.3", config_path=f"../../configs/task", config_name=f'{taskname}')
 def analyze_behavior(cfg):
     taskname = cfg.task.taskname
-    dataset_path = os.path.join(f"{cfg.task.paths.dataset_path}", f"{taskname}_top30.pkl")
+    dataset_path = os.path.join(f"{cfg.task.paths.RNN_dataset_path}", f"{taskname}_top30.pkl")
     dataset = pickle.load(open(dataset_path, "rb"))
     img_save_folder = os.path.join(cfg.task.paths.img_folder)
 

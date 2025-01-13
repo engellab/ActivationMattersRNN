@@ -10,7 +10,7 @@ OmegaConf.register_new_resolver("eval", eval)
 import pickle
 
 
-taskname = "MemoryNumber"
+taskname = "CDDM"
 show = False
 save = True
 n_nets = 5
@@ -77,7 +77,7 @@ def visualize_neurreps(cfg: OmegaConf):
         mds = MDS(n_components=2, dissimilarity='precomputed', n_init=101, eps=1e-6, max_iter=1000)
         mds.fit(Mat)
         embedding = mds.embedding_
-        path = os.path.join(img_folder, f"MDS_neurreps_attempt={attempt}.pdf")
+        path = os.path.join(img_folder, f"MDS_neurreps_attempt={attempt}_horizontal.pdf")
         plot_embedding(embedding, inds_list, legends, colors, hatch, markers,
                        show_legends=False, save=save, path=path, show=show)
 
