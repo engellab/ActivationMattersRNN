@@ -13,8 +13,48 @@ Make sure to modify the following, setting *absolute* paths:
 - fixed_points_data_folder (`../fixed_points/task name)`
 
 ### Dependencies
+This package relies on a [`trainRNNbrain`](https://github.com/engellab/trainRNNbrain) and [`latent_circiut_inference`](https://github.com/engellab/latent_circuit_inference) packages, make sure to download it and install it locally by running `python -m pip install -e ./` from the `trainRNNbrain`  and `latent_circuit_inference' folder.
 
-This package relies on a [`trainRNNbrain`](https://github.com/engellab/trainRNNbrain) package, make sure to download it and install it locally by running `python -m pip install -e ./` from the `trainRNNbrain` folder.
+**ActivationMatters        1.0**          
+antlr4-python3-runtime   4.9.3
+contourpy                1.3.1
+cycler                   0.12.1
+filelock                 3.16.1
+fonttools                4.55.3
+fsspec                   2024.12.0
+hydra-core               1.3.2
+Jinja2                   3.1.5
+joblib                   1.4.2
+kiwisolver               1.4.8
+**latent_circuit_inference 0.1**         
+MarkupSafe               3.0.2
+matplotlib               3.10.0
+mpmath                   1.3.0
+networkx                 3.4.2
+numdifftools             0.9.41
+numpy                    2.2.1
+omegaconf                2.3.0
+packaging                24.2
+pandas                   2.2.3
+pillow                   11.1.0
+pip                      24.2
+pyparsing                3.2.1
+python-dateutil          2.9.0.post0
+pytz                     2024.2
+PyYAML                   6.0.2
+scikit-learn             1.6.1
+scipy                    1.15.1
+setuptools               75.1.0
+six                      1.17.0
+sympy                    1.13.1
+threadpoolctl            3.5.0
+torch                    2.5.1
+tqdm                     4.67.1
+**trainRNNbrain            1.0**   
+typing_extensions        4.12.2
+tzdata                   2024.2
+wheel                    0.44.0
+
 
 ### How to run the analysis
 
