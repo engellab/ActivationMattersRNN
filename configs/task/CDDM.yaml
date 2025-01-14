@@ -3,7 +3,6 @@ paths:
   style_path: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN"
   trained_RNNs_path: "/Users/tolmach/Documents/GitHub/trainRNNbrain/data/trained_RNNs"
   RNN_dataset_path: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/data/RNN_datasets"
-#  LC_dataset_path: "/Users/tolmach/Documents/GitHub/latent_circuit_inference/data/inferred_LCs"
   LC_dataset_path: "/Users/tolmach/Documents/GitHub/latent_circuit_inference/data/inferred_LCs"
   auxilliary_datasets_path: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/data/auxilliary_datasets/CDDM"
   img_folder: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/img/CDDM"

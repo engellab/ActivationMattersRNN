@@ -3,7 +3,6 @@ from trainRNNbrain.training.training_utils import prepare_task_arguments
 from activation_matters.utils.feautre_extraction_utils import get_dataset
 from activation_matters.plots.ploting_utils import interpolate_color
 from activation_matters.utils.trajectories_utils import shuffle_connectivity
-# from style.style_setup import set_up_plotting_styles
 from scipy.linalg import orthogonal_procrustes
 np.set_printoptions(suppress=True)
 import os
@@ -11,7 +10,6 @@ from trainRNNbrain.rnns.RNN_numpy import RNN_numpy
 from trainRNNbrain.analyzers.DynamicSystemAnalyzer import *
 from sklearn.decomposition import PCA
 from tqdm.auto import tqdm
-os.system('python ../../style/style_setup.py')
 from scipy.optimize import minimize
 import pickle
 import hydra
@@ -27,7 +25,7 @@ save = False
 @hydra.main(version_base="1.3", config_path=f"../../configs/task", config_name=f'{taskname}')
 def analyze_stimuli(cfg):
     taskname = cfg.task.taskname
-    dataset_path = os.path.join(f"{cfg.task.paths.dataset_path}", f"{taskname}_top30.pkl")
+    dataset_path = os.path.join(f"{cfg.task.paths.RNN_dataset_path}", f"{taskname}_top30.pkl")
     aux_datasets_folder = f"{cfg.task.paths.auxilliary_datasets_path}"
     dataset = pickle.load(open(dataset_path, "rb"))
 

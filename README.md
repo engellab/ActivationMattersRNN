@@ -59,6 +59,7 @@ This package relies on a [`trainRNNbrain`](https://github.com/engellab/trainRNNb
 
 
 ### How to run the analysis
+Modify the config variables in config/task folders, so that the path-variables point towards the correct folders.
 
 The dataset containing top 30 networks for each of the architectural class are stored in `data/RNN_datasets`.
 

@@ -5,12 +5,10 @@ from sklearn.decomposition import PCA
 from copy import copy
 import pickle
 from activation_matters.plots.ploting_utils import normalize_color
-# from style.style_setup import set_up_plotting_styles
 import numpy as np
 import hydra
 from omegaconf import OmegaConf
 from tqdm.auto import tqdm
-os.system('python ../../style/style_setup.py')
 OmegaConf.register_new_resolver("eval", eval)
 from matplotlib import pyplot as plt
 def ICP_registration(points_source, labels_source,

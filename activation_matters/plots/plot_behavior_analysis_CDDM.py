@@ -4,13 +4,11 @@ from matplotlib.colors import LinearSegmentedColormap
 from omegaconf import OmegaConf
 from trainRNNbrain.training.training_utils import prepare_task_arguments
 from activation_matters.utils.feautre_extraction_utils import get_dataset
-from style.style_setup import set_up_plotting_styles
 
 np.set_printoptions(suppress=True)
 from trainRNNbrain.rnns.RNN_numpy import RNN_numpy
 from trainRNNbrain.analyzers.PerformanceAnalyzer import *
 
-os.system('python ../../style/style_setup.py')
 import hydra
 OmegaConf.register_new_resolver("eval", eval)
 
@@ -109,7 +107,6 @@ show = False
 save = True
 @hydra.main(version_base="1.3", config_path=f"../../configs/task", config_name=f'{taskname}')
 def analyze_behavior(cfg):
-    # set_up_plotting_styles(cfg.task.paths.style_path)
     file_str = os.path.join(cfg.task.paths.RNN_dataset_path, f"{taskname}_top30.pkl")
     data_save_folder = cfg.task.paths.fixed_points_data_folder
     img_save_folder = cfg.task.paths.img_folder

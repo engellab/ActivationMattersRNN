@@ -60,7 +60,7 @@ def analyze_behavior(cfg):
                 pa = PerformanceAnalyzerCDDM(rnn)
                 pa.calc_psychometric_data(task, mask,
                                           num_levels=31,
-                                          coh_bouds=coh_bounds,
+                                          coh_bounds=coh_bounds,
                                           num_repeats=7,
                                           sigma_rec=0.03,
                                           sigma_inp=0.03)

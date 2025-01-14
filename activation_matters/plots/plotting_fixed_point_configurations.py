@@ -12,7 +12,6 @@ import numpy as np
 import hydra
 from omegaconf import OmegaConf
 from tqdm.auto import tqdm
-os.system('python ../../style/style_setup.py')
 OmegaConf.register_new_resolver("eval", eval)
 
 taskname = "CDDM"

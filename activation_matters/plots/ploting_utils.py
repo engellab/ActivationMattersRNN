@@ -5,7 +5,6 @@ from itertools import chain
 from sklearn.decomposition import PCA
 import os
 import numpy as np
-os.system('python ../../style/style_setup.py')
 mm = 1/25.4
 
 
