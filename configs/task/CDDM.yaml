@@ -1,14 +1,4 @@
 # @package task
-paths:
-  style_path: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN"
-  trained_RNNs_path: "/Users/tolmach/Documents/GitHub/trainRNNbrain/data/trained_RNNs"
-  RNN_dataset_path: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/data/RNN_datasets"
-  LC_dataset_path: "/Users/tolmach/Documents/GitHub/latent_circuit_inference/data/inferred_LCs"
-  auxilliary_datasets_path: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/data/auxilliary_datasets/CDDM"
-  img_folder: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/img/CDDM"
-  feature_datasets_folder: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/data/feature_datasets/CDDM"
-  fixed_points_data_folder: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/data/fixed_points/CDDM"
-
 taskname : 'CDDM'
 dt: 1
 tau: 10
@@ -34,7 +24,7 @@ dataset_filtering_params:
     activation_slope: 1
     mfr_thr: 0.02
     std_thr: 0.02
-    RNN_score_filter: 0.01
+    R2_score_filter: 0.8
     constrained: True
     lambda_r: 0.3
     n_steps: 300
@@ -43,7 +33,7 @@ dataset_filtering_params:
     activation_slope: 1
     mfr_thr: 0.02
     std_thr: 0.02
-    RNN_score_filter: 0.025
+    R2_score_filter: 0.8
     constrained: True
     lambda_r: 0.3
     n_steps: 300
@@ -52,7 +42,7 @@ dataset_filtering_params:
     activation_slope: 7.5
     mfr_thr: 0.02
     std_thr: 0.02
-    RNN_score_filter: 0.01
+    R2_score_filter: 0.8
     constrained: True
     lambda_r: 0.3
     n_steps: 300
@@ -66,10 +56,10 @@ trajectory_analysis_params:
   coherences: [-1, -0.5, 0, 0.5, 1.0]
   trajectory_plot_params: null
 
-neurreps_analysis_params:
+tunings_analysis_params:
   n_PCs: 10
 
-stimreps_analysis_params:
+trajectory_endpoints_analysis_params:
   n_PCs: 10
   coherences: [-1, -0.5, 0, 0.5, 1.0]
 

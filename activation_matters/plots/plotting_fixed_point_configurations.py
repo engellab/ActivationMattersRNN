@@ -12,20 +12,38 @@ import numpy as np
 import hydra
 from omegaconf import OmegaConf
 from tqdm.auto import tqdm
-OmegaConf.register_new_resolver("eval", eval)
+import ray
+import re
+# OmegaConf.register_new_resolver("eval", eval)
 
-taskname = "CDDM"
-n_dim = 2
-n_nets_MDS = 30
-save = True
-show = False
-normalized = True
-@hydra.main(version_base="1.3", config_path=f"../../configs/task/", config_name=f'{taskname}')
+@ray.remote
+def run_mds_and_plot(cfg, attempt, img_name, Mat, img_save_folder, inds_list, legends, colors, hatch, markers, save, show):
+    set_up_plotting_styles(cfg.paths.style_path)
+    # Run MDS
+    img_name = re.sub(r"XXX", str(attempt), img_name)
+    mds = MDS(n_components=2, dissimilarity='precomputed', n_init=101, eps=1e-6, max_iter=1000)
+    mds.fit(Mat)
+    embedding = mds.embedding_
+
+    # Save the plot
+    path = os.path.join(img_save_folder, img_name)
+    plot_embedding(embedding, inds_list, legends, colors, hatch, markers,
+                   show_legends=False, save=save, path=path, show=show)
+    return embedding
+
+@hydra.main(version_base="1.3", config_path=f"../../configs", config_name=f'base')
 def plot_fixed_point_configurations(cfg):
-    img_save_folder = cfg.task.paths.img_folder
-    set_up_plotting_styles(cfg.task.paths.style_path)
-    path_to_folder = cfg.task.paths.fixed_points_data_folder
-    aux_datasets_folder = cfg.task.paths.auxilliary_datasets_path
+    n_dim = 2
+    show = False
+    save = True
+    normalized = True
+    taskname = cfg.task.taskname
+    n_nets = cfg.n_nets
+    dataSegment = cfg.dataSegment
+    img_save_folder = os.path.join(cfg.paths.img_folder, taskname)
+    set_up_plotting_styles(cfg.paths.style_path)
+    path_to_folder = os.path.join(cfg.paths.fixed_points_data_folder, taskname)
+    aux_datasets_folder = os.path.join(cfg.paths.auxilliary_datasets_path, taskname)
     n_components = cfg.task.dynamical_topology_analysis.n_PCs
     net_types = ["relu", "sigmoid", "tanh"]
     data_dict = get_fp_data_dict(path_to_folder, net_types, n_components)
@@ -90,7 +108,6 @@ def plot_fixed_point_configurations(cfg):
     #             inds_list.append(cnt + np.arange(n_nets_taken))
     #             cnt += n_nets_taken
     #             legends.append(f"{net_type}_constrained={constrained}")
-    #
     #             # plot fixed points individually:
     #             for i in range(n_nets):
     #                 path = os.path.join(img_save_folder, f"fp_struct_{net_type}_constrained={constrained}_shuffle={shuffle}_net={i}.pdf")
@@ -109,14 +126,14 @@ def plot_fixed_point_configurations(cfg):
     # fp_dict_combined["legends"] = legends
     # pickle.dump(fp_dict_combined, open(os.path.join(aux_datasets_folder, "FP_similarity.pkl"), "wb+"))
 
-    fp_dict_combined = pickle.load(open(os.path.join(aux_datasets_folder, f"FP_similarity_normalized={normalized}.pkl"), "rb+"))
+    fp_dict_combined = pickle.load(open(os.path.join(aux_datasets_folder, f"FP_similarity_normalized={normalized}_{dataSegment}{n_nets}.pkl"), "rb+"))
     fp_list = fp_dict_combined["fp_list"]
     labels_list = fp_dict_combined["labels_list"]
     inds_list = fp_dict_combined["inds_list"]
     legends = fp_dict_combined["legends"]
 
-    Mat = pickle.load(open(os.path.join(aux_datasets_folder, f"FP_similarity_matrix_normalized={normalized}.pkl"), "rb"))
-    path = os.path.join(img_save_folder, f"fp_struct_similarity_matrix_normalized={normalized}.pdf")
+    Mat = pickle.load(open(os.path.join(aux_datasets_folder, f"FP_similarity_matrix_normalized={normalized}_{dataSegment}{n_nets}.pkl"), "rb"))
+    path = os.path.join(img_save_folder, f"fp_struct_similarity_matrix_normalized={normalized}_{dataSegment}{n_nets}.pdf")
     if show:
         plot_similarity_matrix(Mat, save=save, path=path)
 
@@ -128,15 +145,27 @@ def plot_fixed_point_configurations(cfg):
               "lightgreen", "lightgreen"]
     hatch = ["", "", "", "", "", "", "", "", "", "", "", ""]
     markers = ["o", "v", "o", "v", "o", "v", "o", "v", "o", "v", "o", "v"]
-
     np.fill_diagonal(Mat, 0)
-    for attempt in range(5):
-        mds = MDS(n_components=2, dissimilarity='precomputed', n_init=101, eps=1e-6, max_iter=1000)
-        mds.fit(Mat)
-        embedding = mds.embedding_
-        path = os.path.join(img_save_folder, f"MDS_fp_attempt={attempt}_nPCs={n_components}_normalized={normalized}_horizontal.pdf")
-        plot_embedding(embedding, inds_list, legends, colors, hatch, markers,
-                       show_legends=False, save=save, path=path, show=show)
+
+    # for attempt in range(3):
+    #     mds = MDS(n_components=2, dissimilarity='precomputed', n_init=101, eps=1e-6, max_iter=1000)
+    #     mds.fit(Mat)
+    #     embedding = mds.embedding_
+    #     path = os.path.join(img_save_folder, f"MDS_fp_attempt={attempt}_nPCs={n_components}_normalized={normalized}_{dataSegment}{n_nets}.pdf")
+    #     plot_embedding(embedding, inds_list, legends, colors, hatch, markers,
+    #                    show_legends=False, save=save, path=path, show=show)
+
+    img_name = f"MDS_fp_attempt=XXX_nPCs={n_components}_normalized={normalized}_{dataSegment}{n_nets}.pdf"
+    ray.init()
+    # Launch tasks in parallel
+    results = [
+        run_mds_and_plot.remote(cfg, attempt, img_name, Mat, img_save_folder,
+                                inds_list, legends, colors, hatch, markers, save, show)
+        for attempt in range(3)]
+    embeddings = ray.get(results)
+    ray.shutdown()
+    return None
+
 
 
 def get_fp_data_dict(path_to_folder, net_types, n_components):
@@ -185,55 +214,6 @@ def get_fp_data_dict(path_to_folder, net_types, n_components):
                                 data_dict[net_type][f"constrained={constrained}"][f"shuffle={shuffle}"]["labels_list"].append(np.copy(labels))
                                 data_dict[net_type][f"constrained={constrained}"][f"shuffle={shuffle}"]["fp_dict_list"].append(copy(d))
     return data_dict
-
-
-def ICP_registration(points_source, labels_source,
-                     points_target, labels_target,
-                     n_tries=31, max_iter=1000, tol=1e-10):
-    Qs = []
-    mses = []
-    for tries in range(n_tries):
-        i = 0
-        change = np.inf
-        mse_prev = np.inf
-        mse = np.inf
-        Q = ortho_group.rvs(dim=points_target.shape[1])
-        Q = Q[:points_source.shape[1], :points_target.shape[1]]
-        while i < max_iter and change > tol:
-            # for each source point, find a matching target point
-            D = get_distance_matrix(points_source @ Q, labels_source,
-                                    points_target, labels_target)
-            # clean this matrix of all the rows not being assigned
-            mask = ~np.isnan(D).all(axis=1)
-            points_source_filtered = points_source[mask, :]
-            D = D[mask, :]
-            points_target_matched = points_target[np.nanargmin(D, axis=1), :]
-            Q, _ = orthogonal_procrustes(points_source_filtered, points_target_matched)
-            mse = np.sqrt(np.sum((points_source_filtered @ Q - points_target_matched) ** 2))
-            change = (mse_prev - mse)
-            mse_prev = mse
-            i += 1
-        Qs.append(np.copy(Q))
-        mses.append(mse)
-    best_mse = np.min(mses)
-    best_Q = Qs[np.argmin(mses)]
-    return best_Q, best_mse
-
-def get_distance_matrix(points_source, labels_source, points_target, labels_target):
-    types = []
-    types.extend(labels_source)
-    types.extend(labels_target)
-    types = np.unique(types)
-    distance = np.inf * np.ones((len(points_source), len(points_target)))
-    for type in types:
-        inds_source = np.where(labels_source == type)[0]
-        inds_target = np.where(labels_target == type)[0]
-        if len(inds_source) > 0 and len(inds_target) > 0:
-            points_of_type_source = np.repeat(points_source[inds_source, np.newaxis, :], repeats=len(inds_target), axis=1)
-            points_of_type_target = np.repeat(points_target[np.newaxis, inds_target, :], repeats=len(inds_source), axis=0)
-            distance[np.ix_(inds_source, inds_target)] = np.linalg.norm(points_of_type_source - points_of_type_target, axis=2)
-    return distance
-
 
 if __name__ == '__main__':
     plot_fixed_point_configurations()

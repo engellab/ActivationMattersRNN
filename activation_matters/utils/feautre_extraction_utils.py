@@ -6,9 +6,7 @@ from sklearn.decomposition import PCA
 from itertools import chain
 
 
-def get_dataset(file_str, filters):
-    dale_filter = "Dale="+str(filters["constrained"][1])
-    df = pickle.load(open(file_str, 'rb+'))[filters["activation_name"][1]][dale_filter]
+def get_dataset(df, filters):
     for attribute in list(filters.keys()):
         operand, value = filters[attribute]
         if type(value) == str:

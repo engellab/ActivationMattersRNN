@@ -1,0 +1,10 @@
+# @package paths
+style_path: "/home/pt1290/ActivationMattersRNN"
+trained_RNNs_path: "/home/pt1290/trainRNNbrain/data/trained_RNNs"
+RNN_dataset_path: "/home/pt1290/ActivationMattersRNN/data/RNN_datasets"
+LC_dataset_path: "/home/pt1290/latent_circuit_inference/data/inferred_LCs"
+
+auxilliary_datasets_path: "/home/pt1290/ActivationMattersRNN/data/auxilliary_datasets"
+img_folder: "/home/pt1290/ActivationMattersRNN/img"
+feature_datasets_folder: "/home/pt1290/ActivationMattersRNN/data/feature_datasets"
+fixed_points_data_folder: "/home/pt1290/ActivationMattersRNN/data/fixed_points"

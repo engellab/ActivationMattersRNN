@@ -185,3 +185,4 @@ activation_matters/.DS_Store
 /activation_matters/analysis/get_top_RNNs.py
 /activation_matters/analysis/LC_scores_distribution.py
 /activation_matters/analysis/get_top_LCs.py
+/activation_matters/plots/multirun/

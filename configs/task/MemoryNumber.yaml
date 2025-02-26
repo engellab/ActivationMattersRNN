@@ -1,14 +1,4 @@
 # @package task
-paths:
-  style_path: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN"
-  trained_RNNs_path: "/Users/tolmach/Documents/GitHub/trainRNNbrain/data/trained_RNNs"
-  RNN_dataset_path: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/data/RNN_datasets"
-  LC_dataset_path: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/data/latent_circuits"
-  auxilliary_datasets_path: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/data/auxilliary_datasets/MemoryNumber"
-  img_folder: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/img/MemoryNumber"
-  feature_datasets_folder: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/data/feature_datasets/MemoryNumber"
-  fixed_points_data_folder: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/data/fixed_points/MemoryNumber"
-
 taskname : 'MemoryNumber'
 dt: 1
 tau: 10
@@ -38,7 +28,7 @@ dataset_filtering_params:
     mfr_thr: 0.02
     std_thr: 0.02
     downsample_window: 10
-    RNN_score_filter: 0.01
+    R2_score_filter: 0.9
     constrained: True
     lambda_r: 0.3
     n_steps: 120
@@ -47,7 +37,7 @@ dataset_filtering_params:
     activation_slope: 7.5
     mfr_thr: 0.02
     std_thr: 0.02
-    RNN_score_filter: 0.01
+    R2_score_filter: 0.9
     constrained: True
     lambda_r: 0.3
     n_steps: 120
@@ -56,7 +46,7 @@ dataset_filtering_params:
     activation_slope: 1
     mfr_thr: 0.02
     std_thr: 0.02
-    RNN_score_filter: 0.01
+    R2_score_filter: 0.9
     constrained: True
     lambda_r: 0.3
     n_steps: 120
@@ -76,10 +66,10 @@ trajectory_analysis_params:
               1.0,
               1.0, 1.0, 1.0, 1.0, 1.0 ]
 
-neurreps_analysis_params:
+tunings_analysis_params:
   n_PCs: 10
 
-stimreps_analysis_params:
+trajectory_endpoints_analysis_params:
   n_PCs: 10
 
 dynamical_topology_analysis:

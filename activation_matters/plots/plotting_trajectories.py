@@ -8,20 +8,36 @@ import hydra
 from omegaconf import OmegaConf
 from style.style_setup import set_up_plotting_styles
 import pickle
-OmegaConf.register_new_resolver("eval", eval)
+# OmegaConf.register_new_resolver("eval", eval)
+import ray
+import re
 
+@ray.remote
+def run_mds_and_plot(cfg, attempt, img_name, Mat, img_save_folder, inds_list, legends, colors, hatch, markers, save, show):
+    set_up_plotting_styles(cfg.paths.style_path)
+    # Run MDS
+    img_name = re.sub(r"XXX", str(attempt), img_name)
+    mds = MDS(n_components=2, dissimilarity='precomputed', n_init=101, eps=1e-6, max_iter=1000)
+    mds.fit(Mat)
+    embedding = mds.embedding_
 
-taskname = "CDDM"
-show = False
-save = True
-n_nets = 5
+    # Save the plot
+    path = os.path.join(img_save_folder, img_name)
+    plot_embedding(embedding, inds_list, legends, colors, hatch, markers,
+                   show_legends=False, save=save, path=path, show=show)
+    return embedding
 
 # @hydra.main(version_base="1.3", config_path=f"../../configs/task/", config_name=f'{taskname}')
-@hydra.main(version_base="1.3", config_path=f"../../configs/task/", config_name=f'{taskname}')
+@hydra.main(version_base="1.3", config_path=f"../../configs", config_name=f'base')
 def plot_trajectories(cfg: OmegaConf):
-    set_up_plotting_styles(cfg.task.paths.style_path)
-    aux_datasets_folder = cfg.task.paths.auxilliary_datasets_path
-    img_folder = cfg.task.paths.img_folder
+    show = False
+    save = True
+    taskname = cfg.task.taskname
+    n_nets = cfg.n_nets
+    dataSegment = cfg.dataSegment
+    set_up_plotting_styles (cfg.paths.style_path)
+    aux_datasets_folder = os.path.join(cfg.paths.auxilliary_datasets_path, taskname)
+    img_save_folder = os.path.join(cfg.paths.img_folder, taskname)
 
     # defining the task
     task_conf = prepare_task_arguments(cfg_task=cfg.task, dt=cfg.task.dt)
@@ -33,38 +49,39 @@ def plot_trajectories(cfg: OmegaConf):
     task.seed = 0 # for consistency
     inputs, targets, conditions = task.get_batch()
 
-    data_dict = pickle.load(open(os.path.join(aux_datasets_folder, "trajectories_data.pkl"), "rb+"))
-    if taskname == "CDDM":
-        point_colors, line_colors, markers, linewidth = get_plotting_params_CDDM(conditions)
-    elif taskname == "GoNoGo" or taskname == "MemoryNumber":
-        point_colors, line_colors, markers, linewidth = get_plotting_params_GoNoGo(conditions)
+    print(dataSegment)
 
+    data_dict = pickle.load(open(os.path.join(aux_datasets_folder, f"trajectories_data_{dataSegment}{n_nets}.pkl"), "rb+"))
     legends = data_dict["legends"]
     inds_list = data_dict["inds_list"]
 
-    # plotting the trajectories
-    for k, legend in enumerate(legends):
-        if "shuffle=False" in legend:
-            RNN_trajectories_projected = data_dict["RNN_trajectories_projected"]
-            for i in range(n_nets):
-                for axes in [[0, 1, 2], [0, 2, 3], [1, 2, 3]]:
-                    path = os.path.join(img_folder, f"{taskname}_trajectories_{legend}_{axes}_{i}.pdf")
-                    trajectories_projected = RNN_trajectories_projected[inds_list[k][i]]
-
-                    plot_projected_trajectories(trajectories_projected=trajectories_projected,
-                                                axes=axes[:2],
-                                                legend=legend,
-                                                save=save, path=path,
-                                                line_colors=line_colors,
-                                                point_colors=point_colors,
-                                                markers=markers,
-                                                linewidth=linewidth,
-                                                show=False,
-                                                n_dim=2)
+    # if taskname == "CDDM":
+    #     point_colors, line_colors, markers, linewidth = get_plotting_params_CDDM(conditions)
+    # elif taskname == "GoNoGo" or taskname == "MemoryNumber":
+    #     point_colors, line_colors, markers, linewidth = get_plotting_params_GoNoGo(conditions)
+    # # plotting the trajectories
+    # for k, legend in enumerate(legends):
+    #     if "shuffle=False" in legend:
+    #         RNN_trajectories_projected = data_dict["RNN_trajectories_projected"]
+    #         for i in range(n_nets):
+    #             for axes in [[0, 1, 2], [0, 2, 3], [1, 2, 3]]:
+    #                 path = os.path.join(img_folder, f"{taskname}_trajectories_{legend}_{axes}_{i}.pdf")
+    #                 trajectories_projected = RNN_trajectories_projected[inds_list[k][i]]
+    #
+    #                 plot_projected_trajectories(trajectories_projected=trajectories_projected,
+    #                                             axes=axes[:2],
+    #                                             legend=legend,
+    #                                             save=save, path=path,
+    #                                             line_colors=line_colors,
+    #                                             point_colors=point_colors,
+    #                                             markers=markers,
+    #                                             linewidth=linewidth,
+    #                                             show=show,
+    #                                             n_dim=2)
 
     # VISUALIZE MDS EMBEDDING OF TRAJECTORIES
-    Mat = pickle.load(open(os.path.join(aux_datasets_folder, "trajectories_similarity_matrix.pkl"), "rb"))
-    path = os.path.join(img_folder, f"trajectory_similarity_matrix.pdf")
+    Mat = pickle.load(open(os.path.join(aux_datasets_folder, f"trajectories_similarity_matrix_{dataSegment}{n_nets}.pkl"), "rb"))
+    path = os.path.join(img_save_folder, f"trajectory_similarity_matrix_{dataSegment}{n_nets}.pdf")
     if show:
         plot_similarity_matrix(Mat, save=save, path=path)
     print("Computing the trajectory embedding")
@@ -78,13 +95,26 @@ def plot_trajectories(cfg: OmegaConf):
     markers = ["o", "v", "o", "v", "o", "v", "o", "v", "o", "v", "o", "v"]
 
     np.fill_diagonal(Mat, 0)
-    for attempt in range(5):
-        mds = MDS(n_components=2, dissimilarity='precomputed', n_init=101, eps=1e-6, max_iter=1000)
-        mds.fit(Mat)
-        embedding = mds.embedding_
-        path = os.path.join(img_folder, f"MDS_trajectory_attempt={attempt}_horizontal.pdf")
-        plot_embedding(embedding, inds_list, legends, colors, hatch, markers,
-                       show_legends=False, save=save, path=path, show=show)
+
+    img_name = f"MDS_trajectories_attempt=XXX_{dataSegment}{n_nets}.pdf"
+    ray.init()
+    # Launch tasks in parallel
+    results = [
+        run_mds_and_plot.remote(cfg, attempt, img_name, Mat, img_save_folder, inds_list,
+                                legends, colors, hatch, markers, save, show)
+        for attempt in range(3)]
+    # Retrieve results (if needed)
+    embeddings = ray.get(results)
+    ray.shutdown()
+    return None
+
+    # for attempt in range(3):
+    #     mds = MDS(n_components=2, dissimilarity='precomputed', n_init=101, eps=1e-6, max_iter=1000)
+    #     mds.fit(Mat)
+    #     embedding = mds.embedding_
+    #     path = os.path.join(img_folder, f"MDS_trajectory_attempt={attempt}_{dataSegment}{n_nets}.pdf")
+    #     plot_embedding(embedding, inds_list, legends, colors, hatch, markers,
+    #                    show_legends=False, save=save, path=path, show=show)
 
 def get_plotting_params_CDDM(conditions):
     contexts = np.array([1 if conditions[i]['context'] == 'motion' else -1 for i in range(len(conditions))])
