@@ -17,7 +17,7 @@ def computing_trajectory_similarity_inner_loop(i, j, Fi, Fj):
     return (i, j), (score1 + score2) / 2
 
 @ray.remote
-def process_trajectory(trajectory, n_dim):
+def extract_feature(trajectory, n_dim):
     projected_trajectory = project_trajectories(trajectory, n_dim=n_dim)
     # Divide by overall variance
     R = np.sqrt(np.sum(np.var(projected_trajectory.reshape(projected_trajectory.shape[0], -1), axis=1)))
@@ -55,6 +55,8 @@ def project_trajectories(trajectory, n_dim=10):
 
 show = False
 save = True
+feature_type = "trajectories"
+
 @hydra.main(version_base="1.3", config_path=f"../../configs", config_name=f'base')
 def trajectory_analysis(cfg):
     n_nets = cfg.n_nets
@@ -64,11 +66,11 @@ def trajectory_analysis(cfg):
     aux_datasets_folder = os.path.join(f"{cfg.paths.auxilliary_datasets_path}", taskname)
     dataset = pickle.load(open(dataset_path, "rb"))
     n_PCs = cfg.task.trajectory_analysis_params.n_PCs
+    control_type = cfg.control_type #shuffled or untrained
 
-    ray.init(ignore_reinit_error=True)
-
-    file_path = os.path.join(aux_datasets_folder, f"trajectories_data_{dataSegment}{n_nets}.pkl")
+    file_path = os.path.join(aux_datasets_folder, f"{feature_type}_{dataSegment}{n_nets}_{control_type}.pkl")
     if not os.path.exists(file_path):
+
         #printing RNN scores for top n_nets networks
         for activation in dataset.keys():
             for constraint in dataset[activation].keys():
@@ -88,56 +90,72 @@ def trajectory_analysis(cfg):
 
         activations_list = ["relu", "sigmoid", "tanh"]
         constrained_list = [True, False]
-        shuffle_list = [False, True]
-        RNN_trajectories = []
+        control_list = [False, True]
+        RNN_features = []
         legends = []
         inds_list = []
         cnt = 0
 
         for activation_name in activations_list:
             for constrained in constrained_list:
-                for shuffle in shuffle_list:
-                    print(f"{activation_name};Dale={constrained};shuffled={shuffle}", len(dataset[activation_name][f"Dale={constrained}"]))
-                    legends.append(f"{activation_name} Dale={constrained} shuffle={shuffle}")
+                for control in control_list:
+                    if control:
+                        print(f"{activation_name};Dale={constrained};control={control_type}",
+                              len(dataset[activation_name][f"Dale={constrained}"]))
+                        legends.append(f"{activation_name} Dale={constrained} {control_type}={control}")
+                        if control_type == 'shuffled':
+                            shuffled = True
+                            random = False
+                        elif control_type == 'random':
+                            shuffled = False
+                            random = True
+                    else:
+                        print(f"{activation_name};Dale={constrained}",
+                              len(dataset[activation_name][f"Dale={constrained}"]))
+                        legends.append(f"{activation_name} Dale={constrained}")
+                        shuffled = False
+                        random = False
 
-                    get_traj = get_trajectories_shuffled_connectivity if shuffle == True else get_trajectories
                     # assumes that all the RNNs of the same type have the same activation slope
                     activation_slope = dataset[activation_name][f"Dale={constrained}"]["activation_slope"].tolist()[0]
-                    trajectories = get_traj(dataset=dataset[activation_name][f"Dale={constrained}"],
-                                   task=task,
-                                   activation_name=activation_name,
-                                   activation_slope=activation_slope,
-                                   get_batch_args={})
-                    RNN_trajectories.append(trajectories)
+                    trajectories = get_trajectories(dataset=dataset[activation_name][f"Dale={constrained}"],
+                                                    task=task,
+                                                    activation_name=activation_name,
+                                                    activation_slope=activation_slope,
+                                                    get_batch_args={},
+                                                    shuffled=shuffled,
+                                                    random=random)
+                    RNN_features.append(trajectories)
                     inds_list.append(cnt + np.arange(len(trajectories)))
                     cnt += len(trajectories)
 
-        RNN_trajectories = list(chain.from_iterable(RNN_trajectories))
-        RNN_trajectories_projected = []
+        RNN_features = list(chain.from_iterable(RNN_features))
+        RNN_features_processed = []
 
         # Launch tasks in parallel
-        results = [process_trajectory.remote(trajectory, n_PCs) for trajectory in RNN_trajectories]
+        ray.init(ignore_reinit_error=True)
+        results = [extract_feature.remote(feature, n_PCs) for feature in RNN_features]
         for res in tqdm(results):
-            RNN_trajectories_projected.append(ray.get(res))
+            RNN_features_processed.append(ray.get(res))
+        ray.shutdown()
 
         data_dict = {}
-        data_dict["RNN_trajectories"] = RNN_trajectories
-        data_dict["RNN_trajectories_projected"] = RNN_trajectories_projected
+        data_dict[f"RNN_{feature_type}"] = RNN_features
+        data_dict[f"RNN_{feature_type}_processed"] = RNN_features_processed
         data_dict["legends"] = legends
         data_dict["inds_list"] = inds_list
         pickle.dump(data_dict, open(file_path, "wb+"))
 
     data_dict = pickle.load(open(file_path, "rb+"))
-    file_path = os.path.join(aux_datasets_folder, f"trajectories_similarity_matrix_{dataSegment}{n_nets}.pkl")
+    file_path = os.path.join(aux_datasets_folder, f"{feature_type}_similarity_matrix_{dataSegment}{n_nets}_{control_type}.pkl")
 
     # GET THE SIMILARITY BETWEEN THE TRAJECTORIES
     if not os.path.exists(file_path):
-        print("Calculating the similarity between the trajectories")
-        RNN_trajectories_projected = data_dict["RNN_trajectories_projected"]
-        Mat = get_trajectory_similarity(RNN_trajectories_projected)
+        print(f"Calculating the similarity between the {feature_type}")
+        RNN_features_processed = data_dict[f"RNN_{feature_type}_processed"]
+        Mat = get_trajectory_similarity(RNN_features_processed)
         pickle.dump(Mat, open(file_path, "wb+"))
 
-    ray.shutdown()
 
 if __name__ == '__main__':
     trajectory_analysis()

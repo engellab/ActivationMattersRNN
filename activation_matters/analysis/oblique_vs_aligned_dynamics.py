@@ -6,7 +6,8 @@ from activation_matters.utils.trajectories_utils import *
 from itertools import chain
 import ray
 from copy import deepcopy
-from tqdm.auto import tqdm
+# from tqdm.auto import tqdm
+from scipy.linalg import subspace_angles
 # OmegaConf.register_new_resolver("eval", eval)
 
 def subspace_cosine_similarity(W, P):
@@ -66,7 +67,8 @@ def analyze_angles_between_output_and_activity_subspaces(cfg):
         for constraint in dataset[activation].keys():
             W_out_list = dataset[activation][constraint].W_out_RNN.tolist()
             W_out_list = [W_out.T for W_out in W_out_list]
-            PCs_list = []
+            # PCs_list = []
+            trajectory_list = []
             activation_slope = dataset[activation][constraint]["activation_slope"].tolist()[0]
             trajectories = get_trajectories(dataset=dataset[activation][constraint],
                                     task=task,
@@ -75,27 +77,29 @@ def analyze_angles_between_output_and_activity_subspaces(cfg):
                                     get_batch_args={})
 
             # get the relevant decision epoch
-            print("Projecting trajectories")
-            for trajectory in tqdm(trajectories):
+            # print("Projecting trajectories")
+            for trajectory in (trajectories):
                 trajectory_decision_epoch = trajectory[:, decision_epoch_mask, :]
                 trajectory_DE_flat = trajectory_decision_epoch.reshape(trajectory.shape[0], -1)
+                trajectory_list.append(trajectory_DE_flat)
+                # # do the PCA on these trajectories
+                # pca = PCA(n_components=3)
+                # pca.fit(trajectory_DE_flat.T)
+                # PCs = pca.components_.T # has to be N dimensional
+                # PCs_list.append(deepcopy(PCs))
 
-                # do the PCA on these trajectories
-                pca = PCA(n_components=3)
-                pca.fit(trajectory_DE_flat.T)
-                PCs = pca.components_.T # has to be N dimensional
-                PCs_list.append(deepcopy(PCs))
+            # print("Computing cosine similarity between the subspaces")
+            angles_r = []
+            rhos = []
+            for W, X in (zip(W_out_list, trajectory_list)):
+                X_ = X - np.mean(X, axis = 1, keepdims=True)
+                rho = (np.linalg.norm(W.T @ X_, 'fro') / (np.linalg.norm(W, 'fro') * np.linalg.norm(X_, 'fro')))
+                rhos.append(rho)
 
-            print("Computing cosine similarity between the subspaces")
-            cosines = []
-            angles = []
-            for W, P in tqdm(zip(W_out_list, PCs_list)):
-                # calculate an angle between the subspaces
-                cosines.append(subspace_cosine_similarity(W, P))
-                angles.append(360 * np.arccos(cosines[-1]) / (2 * np.pi))
-            m_a = np.round(np.mean(angles), 1)
-            std_a = np.round(np.std(angles), 1)
-            print(f"Activation: {activation}; constraint: {constraint}; Angle between subspaces: {m_a} \pm {std_a}")
+            m_rho = np.round(np.mean(rhos), 2)
+            std_rho = np.round(np.std(rhos), 2)
+
+            print(f"Activation: {activation}; constraint: {constraint}; rho = {m_rho} \pm {std_rho}")
     return None
 
 

@@ -29,9 +29,10 @@ def run_mds_and_plot(cfg, attempt, img_name, Mat, img_save_folder, inds_list, le
 
 # @hydra.main(version_base="1.3", config_path=f"../../configs/task/", config_name=f'{taskname}')
 @hydra.main(version_base="1.3", config_path=f"../../configs", config_name=f'base')
-def plot_trajectories(cfg: OmegaConf):
+def plot_trajectories(cfg):
     show = False
     save = True
+    control_type = cfg.control_type
     taskname = cfg.task.taskname
     n_nets = cfg.n_nets
     dataSegment = cfg.dataSegment
@@ -51,7 +52,7 @@ def plot_trajectories(cfg: OmegaConf):
 
     print(dataSegment)
 
-    data_dict = pickle.load(open(os.path.join(aux_datasets_folder, f"trajectories_data_{dataSegment}{n_nets}.pkl"), "rb+"))
+    data_dict = pickle.load(open(os.path.join(aux_datasets_folder, f"trajectories_{dataSegment}{n_nets}_{control_type}.pkl"), "rb+"))
     legends = data_dict["legends"]
     inds_list = data_dict["inds_list"]
 
@@ -80,8 +81,8 @@ def plot_trajectories(cfg: OmegaConf):
     #                                             n_dim=2)
 
     # VISUALIZE MDS EMBEDDING OF TRAJECTORIES
-    Mat = pickle.load(open(os.path.join(aux_datasets_folder, f"trajectories_similarity_matrix_{dataSegment}{n_nets}.pkl"), "rb"))
-    path = os.path.join(img_save_folder, f"trajectory_similarity_matrix_{dataSegment}{n_nets}.pdf")
+    Mat = pickle.load(open(os.path.join(aux_datasets_folder, f"trajectories_similarity_matrix_{dataSegment}{n_nets}_{control_type}.pkl"), "rb"))
+    path = os.path.join(img_save_folder, f"trajectory_similarity_matrix_{dataSegment}{n_nets}_{control_type}.pdf")
     if show:
         plot_similarity_matrix(Mat, save=save, path=path)
     print("Computing the trajectory embedding")
@@ -96,7 +97,7 @@ def plot_trajectories(cfg: OmegaConf):
 
     np.fill_diagonal(Mat, 0)
 
-    img_name = f"MDS_trajectories_attempt=XXX_{dataSegment}{n_nets}.pdf"
+    img_name = f"MDS_trajectories_attempt=XXX_{dataSegment}{n_nets}_{control_type}.pdf"
     ray.init()
     # Launch tasks in parallel
     results = [
@@ -107,14 +108,6 @@ def plot_trajectories(cfg: OmegaConf):
     embeddings = ray.get(results)
     ray.shutdown()
     return None
-
-    # for attempt in range(3):
-    #     mds = MDS(n_components=2, dissimilarity='precomputed', n_init=101, eps=1e-6, max_iter=1000)
-    #     mds.fit(Mat)
-    #     embedding = mds.embedding_
-    #     path = os.path.join(img_folder, f"MDS_trajectory_attempt={attempt}_{dataSegment}{n_nets}.pdf")
-    #     plot_embedding(embedding, inds_list, legends, colors, hatch, markers,
-    #                    show_legends=False, save=save, path=path, show=show)
 
 def get_plotting_params_CDDM(conditions):
     contexts = np.array([1 if conditions[i]['context'] == 'motion' else -1 for i in range(len(conditions))])

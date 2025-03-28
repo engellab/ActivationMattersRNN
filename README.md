@@ -84,7 +84,7 @@ As a result the code produces multiple figures (trajectories, single-unit select
 
 For convenience, if you want to run the whole analysis pipeline, run `analysis/run_entire_pipeline.py` followed by `plots/plotting_all_embeddings.py`.
 
-Be advised, the computations take some time. Computing the MDS embedding of fixed points, for instance, took about 10 hours on a M3 chip Mac 2024 laptop just for one task. 
+Be advised, the computations take some time. Computing the distance matrix for ensuing MDS embedding of fixed points, for instance, took about 10 hours on a M3 chip Mac 2024 laptop just for one task. 
 
 
 

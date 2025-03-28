@@ -49,14 +49,14 @@ dataset_filtering_params:
 
 trajectory_analysis_params:
   n_PCs: 10
-  n_nets: 30
+  n_nets: 50
   distance_metric: "MSE"
   dist_mat_plot_lower_bound: 0.0
   save_figures: True
   coherences: [-1, -0.5, 0, 0.5, 1.0]
   trajectory_plot_params: null
 
-tunings_analysis_params:
+selectivities_analysis_params:
   n_PCs: 10
 
 trajectory_endpoints_analysis_params:

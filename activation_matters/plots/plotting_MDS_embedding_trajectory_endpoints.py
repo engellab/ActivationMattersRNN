@@ -27,15 +27,16 @@ def run_mds_and_plot(cfg, attempt, img_name, Mat, img_save_folder, inds_list, le
                    show_legends=False, save=save, path=path, show=show)
     return embedding
 
-
+feature_type = 'trajectory_endpoints'
 @hydra.main(version_base="1.3", config_path=f"../../configs/", config_name=f'base')
-def plot_trajectory_endpoints(cfg: OmegaConf):
+def plot_trajectory_endpoints(cfg):
     show = False
     save = True
     n_dim = 2
     taskname = cfg.task.taskname
     n_nets = cfg.n_nets
     dataSegment = cfg.dataSegment
+    control_type = cfg.control_type
     aux_datasets_folder = os.path.join(cfg.paths.auxilliary_datasets_path, taskname)
     img_save_folder = os.path.join(cfg.paths.img_folder, taskname)
 
@@ -49,13 +50,10 @@ def plot_trajectory_endpoints(cfg: OmegaConf):
     task.seed = 0 # for consistency
     inputs, targets, conditions = task.get_batch()
 
-    data_dict = pickle.load(open(os.path.join(aux_datasets_folder, f"trajectory_endpoints_similarity_{dataSegment}{n_nets}.pkl"), "rb+"))
+    data_dict = pickle.load(open(os.path.join(aux_datasets_folder, f"{feature_type}_{dataSegment}{n_nets}_{control_type}.pkl"), "rb+"))
     legends = data_dict["legends"]
-    face_colors = data_dict["face_colors"]
-    edge_colors = data_dict["edge_colors"]
-    markers =  data_dict["markers"]
     inds_list = data_dict["inds_list"]
-    RNN_stimreps_list = data_dict["PCA_stimuli_list"]
+    # features_processed = data_dict[f"RNN_{feature_type}_processed"]
     # plotting the trajectories
     # for k, legend in enumerate(legends):
     #     # if "shuffle=False" in legend:
@@ -73,8 +71,8 @@ def plot_trajectory_endpoints(cfg: OmegaConf):
     #                                          path=path, n_dim=n_dim)
 
     # VISUALIZE MDS EMBEDDING OF TRAJECTORIES
-    Mat = pickle.load(open(os.path.join(aux_datasets_folder, f"trajectory_endpoints_similarity_matrix_{dataSegment}{n_nets}.pkl"), "rb"))
-    path = os.path.join(img_save_folder, f"trajectory_endpoints_similarity_matrix_{dataSegment}{n_nets}.pdf")
+    Mat = pickle.load(open(os.path.join(aux_datasets_folder, f"{feature_type}_similarity_matrix_{dataSegment}{n_nets}_{control_type}.pkl"), "rb"))
+    path = os.path.join(img_save_folder, f"{feature_type}_similarity_matrix_{dataSegment}{n_nets}_{control_type}.pdf")
     if show:
         plot_similarity_matrix(Mat, save=save, path=path)
 
@@ -89,8 +87,7 @@ def plot_trajectory_endpoints(cfg: OmegaConf):
     markers = ["o", "v", "o", "v", "o", "v", "o", "v", "o", "v", "o", "v"]
 
     np.fill_diagonal(Mat, 0)
-
-    img_name = f"MDS_trajectory_endpoints_attempt=XXX_{dataSegment}{n_nets}.pdf"
+    img_name = f"MDS_{feature_type}_attempt=XXX_{dataSegment}{n_nets}_{control_type}.pdf"
     ray.init()
 
     # Launch tasks in parallel
@@ -101,14 +98,8 @@ def plot_trajectory_endpoints(cfg: OmegaConf):
     # Retrieve results (if needed)
     embeddings = ray.get(results)
     ray.shutdown()
+    return None
 
-    # for attempt in range(3):
-    #     mds = MDS(n_components=2, dissimilarity='precomputed', n_init=101, eps=1e-6, max_iter=1000)
-    #     mds.fit(Mat)
-    #     embedding = mds.embedding_
-    #     path = os.path.join(img_folder, f"MDS_trajectory_endpoints_attempt={attempt}_{dataSegment}{n_nets}.pdf")
-    #     plot_embedding(embedding, inds_list, legends, colors, hatch, markers,
-    #                    show_legends=False, save=save, path=path, show=show)
 
 if __name__ == '__main__':
     plot_trajectory_endpoints()

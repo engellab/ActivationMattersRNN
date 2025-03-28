@@ -1,6 +1,7 @@
 from pathlib import Path
 import numpy as np
 from omegaconf import OmegaConf
+from trainRNNbrain.rnns import RNN_torch
 from trainRNNbrain.training.training_utils import prepare_task_arguments
 from activation_matters.utils.trajectories_utils import shuffle_connectivity
 import os
@@ -19,23 +20,42 @@ import ray
 def process_network(i,
                     activation_name,
                     constrained,
-                    shuffle,
+                    control_type,
+                    control,
                     dataSegment,
                     data_save_folder,
                     connectivity_dict,
                     dataset,
                     cfg,
                     task):
-    file_path = os.path.join(data_save_folder,
-                             f"{activation_name}_constrained={constrained}_shuffle={shuffle}_fpstruct_{dataSegment}_n={i}.pkl")
+    if control:
+        file_path = os.path.join(data_save_folder,
+                                 f"{activation_name}_constrained={constrained}_controlType={control_type}_control={control}_fpstruct_{dataSegment}_n={i}.pkl")
+    else:
+        file_path = os.path.join(data_save_folder,
+                                 f"{activation_name}_constrained={constrained}_control={control}_fpstruct_{dataSegment}_n={i}.pkl")
+
 
     if not os.path.isfile(file_path):
         # Extract connectivity matrices
-        W_inp, W_rec, W_out = (connectivity_dict[activation_name][tp][i] for tp in ["inp", "rec", "out"])
-
-        # Shuffle connectivity if required
-        if shuffle:
-            W_inp, W_rec, W_out = shuffle_connectivity(W_inp, W_rec, W_out)
+        if control == False:
+            W_inp, W_rec, W_out = (connectivity_dict[activation_name][tp][i] for tp in ["inp", "rec", "out"])
+        else:
+            W_inp, W_rec, W_out = (connectivity_dict[activation_name][tp][i] for tp in ["inp", "rec", "out"])
+            if control_type == 'shuffled':
+                W_inp, W_rec, W_out = shuffle_connectivity(W_inp, W_rec, W_out)
+            elif control_type == 'random':
+                if constrained:
+                    W_rec, W_inp, W_out, _, _, _, _ = RNN_torch.get_connectivity_Dale(N=W_inp.shape[0],
+                                                                                      num_inputs=task.n_inputs,
+                                                                                      num_outputs=task.n_outputs)
+                else:
+                    W_rec, W_inp, W_out, _, _, _ = RNN_torch.get_connectivity(N=W_inp.shape[0],
+                                                                              num_inputs=task.n_inputs,
+                                                                              num_outputs=task.n_outputs)
+                W_inp = W_inp.detach().cpu().numpy()
+                W_rec = W_rec.detach().cpu().numpy()
+                W_out = W_out.detach().cpu().numpy()
 
         N = W_inp.shape[0]
         # Assumes that all the RNNs of the same type have the same activation slope
@@ -98,12 +118,14 @@ show = False
 save = True
 @hydra.main(version_base="1.3", config_path=f"../../configs", config_name=f'base')
 def computing_fp(cfg):
+    os.environ["NUMEXPR_MAX_THREADS"] = "25"
     n_nets = cfg.n_nets
     dataSegment = cfg.dataSegment
     taskname = cfg.task.taskname
     dataset_path = os.path.join(f"{cfg.paths.RNN_dataset_path}", f"{taskname}_{dataSegment}{n_nets}.pkl")
     dataset = pickle.load(open(dataset_path, "rb"))
     data_save_folder = os.path.join(cfg.paths.fixed_points_data_folder, taskname)
+    control_type = cfg.control_type
 
     # defining the task
     task_conf = prepare_task_arguments(cfg_task=cfg.task, dt=cfg.task.dt)
@@ -119,8 +141,10 @@ def computing_fp(cfg):
             connectivity_dict[activation_name]["inp"] = dataset[activation_name][f"Dale={constrained}"]["W_inp_RNN"].tolist()
             connectivity_dict[activation_name]["rec"] = dataset[activation_name][f"Dale={constrained}"]["W_rec_RNN"].tolist()
             connectivity_dict[activation_name]["out"] = dataset[activation_name][f"Dale={constrained}"]["W_out_RNN"].tolist()
-            for shuffle in [False, True]:
-                print(f"{activation_name};Dale={constrained};shuffled={shuffle}", len(dataset[activation_name][f"Dale={constrained}"]))
+            for control in [False, True]:
+                print(f"{activation_name};Dale={constrained};control_type={control_type}; control={control}",
+                      len(dataset[activation_name][f"Dale={constrained}"]))
+
 
                 # Ensure the data save folder exists
                 if not os.path.exists(data_save_folder):
@@ -129,7 +153,8 @@ def computing_fp(cfg):
                 results = [process_network.remote(i,
                                                   activation_name,
                                                   constrained,
-                                                  shuffle,
+                                                  control_type,
+                                                  control,
                                                   dataSegment,
                                                   data_save_folder,
                                                   connectivity_dict,

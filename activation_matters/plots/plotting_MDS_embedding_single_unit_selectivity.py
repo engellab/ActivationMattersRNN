@@ -27,16 +27,18 @@ def run_mds_and_plot(cfg, attempt, img_name, Mat, img_save_folder, inds_list, le
 
 
 @hydra.main(version_base="1.3", config_path=f"../../configs/", config_name=f'base')
-def plot_tuning(cfg: OmegaConf):
+def plot_selectivities(cfg):
     show = False
     save = True
-    # q = 0.4
+    feature_type = "selectivities"
     set_up_plotting_styles(cfg.paths.style_path)
     taskname = cfg.task.taskname
+    control_type = cfg.control_type
     aux_datasets_folder = os.path.join(cfg.paths.auxilliary_datasets_path, taskname)
     img_save_folder = os.path.join(cfg.paths.img_folder, taskname)
     n_nets = cfg.n_nets
     dataSegment = cfg.dataSegment
+
     # defining the task
     task_conf = prepare_task_arguments(cfg_task=cfg.task, dt=cfg.task.dt)
     task = hydra.utils.instantiate(task_conf)
@@ -47,37 +49,17 @@ def plot_tuning(cfg: OmegaConf):
     task.seed = 0 # for consistency
     inputs, targets, conditions = task.get_batch()
 
-    data_dict = pickle.load(open(os.path.join(aux_datasets_folder, f"tunings_{dataSegment}{n_nets}.pkl"), "rb+"))
+    data_dict = pickle.load(open(os.path.join(aux_datasets_folder, f"{feature_type}_{dataSegment}{n_nets}_{control_type}.pkl"), "rb+"))
     legends = data_dict["legends"]
     inds_list = data_dict["inds_list"]
-    RNN_tunings_list = data_dict["RNN_tunings_list"]
+    # RNN_selectivities_processed = data_dict["RNN_selectivities_processed"]
 
-    # # plotting the trajectories
-    # for k, legend in enumerate(legends):
-    #     if "shuffle=False" in legend:
-    #         for axes in [[0, 1, 2], [0, 2, 3], [1, 2, 3]]:
-    #             neural_tunings = np.concatenate([RNN_tunings_list[inds_list[k][i]] for i in range(n_nets)], axis = 0)
-    #
-    #             path = os.path.join(img_folder, f"{taskname}_neural_representations_{legend}_{axes}.pdf")
-    #             n_dim = 2
-    #
-    #             thr = np.quantile(neural_tunings, q)
-    #             inds = np.where(np.abs(neural_tunings) > thr)[0]
-    #             neural_tunings_reduced = neural_tunings[inds, :]
-    #
-    #             plot_representations(neural_tunings_reduced,
-    #                                  axes=axes[:n_dim],
-    #                                  labels=None,
-    #                                  show=False,
-    #                                  save=save, path=path,
-    #                                  s=30, alpha=0.9, n_dim=n_dim)
-
-    # VISUALIZE MDS EMBEDDING OF TRAJECTORIES
-    Mat = pickle.load(open(os.path.join(aux_datasets_folder, f"tunings_similarity_matrix_{dataSegment}{n_nets}.pkl"), "rb"))
-    path = os.path.join(img_save_folder, f"tunings_similarity_matrix_{dataSegment}{n_nets}.pdf")
+    # VISUALIZE MDS EMBEDDING OF SELECTIVITIES
+    Mat = pickle.load(open(os.path.join(aux_datasets_folder, f"{feature_type}_similarity_matrix_{dataSegment}{n_nets}_{control_type}.pkl"), "rb"))
+    path = os.path.join(img_save_folder, f"{feature_type}_similarity_matrix_{dataSegment}{n_nets}_{control_type}.pdf")
     if show:
         plot_similarity_matrix(Mat, save=save, path=path)
-    print("Computing the tuning embedding")
+    print(f"Computing the {feature_type} embedding")
     colors = ["red", "red",
               "orange", "orange",
               "blue", "blue",
@@ -89,7 +71,7 @@ def plot_tuning(cfg: OmegaConf):
 
     np.fill_diagonal(Mat, 0)
 
-    img_name = f"MDS_tunings_attempt=XXX_{dataSegment}{n_nets}.pdf"
+    img_name = f"MDS_{feature_type}_attempt=XXX_{dataSegment}{n_nets}_{control_type}.pdf"
     ray.init()
     # Launch tasks in parallel
     results = [
@@ -100,14 +82,6 @@ def plot_tuning(cfg: OmegaConf):
     embeddings = ray.get(results)
     ray.shutdown()
 
-    # for attempt in range(3):
-    #     mds = MDS(n_components=2, dissimilarity='precomputed', n_init=101, eps=1e-6, max_iter=1000)
-    #     mds.fit(Mat)
-    #     embedding = mds.embedding_
-    #     path = os.path.join(img_folder, f"MDS_tuning_attempt={attempt}_{dataSegment}{n_nets}.pdf")
-    #     plot_embedding(embedding, inds_list, legends, colors, hatch, markers,
-    #                    show_legends=False, save=save, path=path, show=show)
-
 
 if __name__ == '__main__':
-    plot_tuning()
+    plot_selectivities()
