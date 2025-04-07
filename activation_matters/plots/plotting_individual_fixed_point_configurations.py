@@ -1,12 +1,8 @@
 import os
-from sklearn.decomposition import PCA
-from copy import copy
-import pickle
 
 from activation_matters.analysis.fixed_point_analysis import ICP_registration, get_fp_data_dict
-from activation_matters.plots.ploting_utils import normalize_color, plot_embedding, plot_aligned_FPs, plot_similarity_matrix, \
-    plot_fixed_points
-from style.style_setup import set_up_plotting_styles
+from activation_matters.plots.ploting_utils import normalize_color, plot_aligned_FPs
+from activation_matters.plots.style.style_setup import set_up_plotting_styles
 import numpy as np
 import hydra
 from omegaconf import OmegaConf

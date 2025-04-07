@@ -1,10 +1,9 @@
-from matplotlib import pyplot as plt
 import numpy as np
 import pickle
 import hydra
 from omegaconf import OmegaConf
 from trainRNNbrain.training.training_utils import prepare_task_arguments
-from style.style_setup import set_up_plotting_styles
+from activation_matters.plots.style.style_setup import set_up_plotting_styles
 import os
 
 # @hydra.main(version_base="1.3", config_path=f"../../configs/task/", config_name=f'{taskname}')

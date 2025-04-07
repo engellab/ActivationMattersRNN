@@ -1,12 +1,11 @@
 import numpy as np
 import os
-from trainRNNbrain.training.training_utils import prepare_task_arguments
 from sklearn.manifold import MDS
-from activation_matters.plots.ploting_utils import interpolate_color, plot_projected_trajectories, plot_similarity_matrix, \
+from activation_matters.plots.ploting_utils import interpolate_color, plot_similarity_matrix, \
     plot_embedding
 import hydra
 from omegaconf import OmegaConf
-from style.style_setup import set_up_plotting_styles
+from activation_matters.plots.style.style_setup import set_up_plotting_styles
 import pickle
 # OmegaConf.register_new_resolver("eval", eval)
 import ray
@@ -78,7 +77,8 @@ def plot_MDS_embedding_connectivity_shuffled_RNNs(cfg: OmegaConf):
     np.fill_diagonal(Mat_subsampled, 0)
 
     img_name = f"MDS_{modality}_attempt=XXX_{dataSegment}{n_nets}_shuffled_connectivity.pdf"
-    ray.init()
+    ray.init(ignore_reinit_error=True, address="auto")
+    print(ray.available_resources())
     # Launch tasks in parallel
     results = [
         run_mds_and_plot.remote(cfg, attempt, img_name, Mat_subsampled, img_save_folder, inds_list_sh,

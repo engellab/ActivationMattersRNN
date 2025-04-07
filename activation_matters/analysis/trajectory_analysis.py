@@ -59,11 +59,13 @@ feature_type = "trajectories"
 
 @hydra.main(version_base="1.3", config_path=f"../../configs", config_name=f'base')
 def trajectory_analysis(cfg):
+    os.environ["NUMEXPR_MAX_THREADS"] = "50"
     n_nets = cfg.n_nets
     dataSegment = cfg.dataSegment
     taskname = cfg.task.taskname
     dataset_path = os.path.join(f"{cfg.paths.RNN_dataset_path}", f"{taskname}_{dataSegment}{n_nets}.pkl")
     aux_datasets_folder = os.path.join(f"{cfg.paths.auxilliary_datasets_path}", taskname)
+    os.makedirs(aux_datasets_folder, exist_ok=True)
     dataset = pickle.load(open(dataset_path, "rb"))
     n_PCs = cfg.task.trajectory_analysis_params.n_PCs
     control_type = cfg.control_type #shuffled or untrained
@@ -133,7 +135,9 @@ def trajectory_analysis(cfg):
         RNN_features_processed = []
 
         # Launch tasks in parallel
-        ray.init(ignore_reinit_error=True)
+        ray.init(ignore_reinit_error=True, address="auto")
+        print(ray.available_resources())
+
         results = [extract_feature.remote(feature, n_PCs) for feature in RNN_features]
         for res in tqdm(results):
             RNN_features_processed.append(ray.get(res))
@@ -148,6 +152,8 @@ def trajectory_analysis(cfg):
 
     data_dict = pickle.load(open(file_path, "rb+"))
     file_path = os.path.join(aux_datasets_folder, f"{feature_type}_similarity_matrix_{dataSegment}{n_nets}_{control_type}.pkl")
+
+
 
     # GET THE SIMILARITY BETWEEN THE TRAJECTORIES
     if not os.path.exists(file_path):

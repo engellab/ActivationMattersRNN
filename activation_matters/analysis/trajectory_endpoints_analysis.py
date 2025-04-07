@@ -65,6 +65,7 @@ save = False
 feature_type = "trajectory_endpoints"
 @hydra.main(version_base="1.3", config_path=f"../../configs", config_name=f'base')
 def trajectory_endpoints_analysis(cfg):
+    os.environ["NUMEXPR_MAX_THREADS"] = "50"
     n_nets = cfg.n_nets
     dataSegment = cfg.dataSegment
     taskname = cfg.task.taskname
@@ -139,7 +140,9 @@ def trajectory_endpoints_analysis(cfg):
         RNN_features_processed = []
 
         # Launch tasks in parallel
-        ray.init(ignore_reinit_error=True)
+        ray.init(ignore_reinit_error=True, address="auto")
+        print(ray.available_resources())
+
         results = [extract_feature.remote(feature, n_PCs) for feature in RNN_features]
         for res in tqdm(results):
             RNN_features_processed.append(ray.get(res))

@@ -8,13 +8,15 @@ import pickle
 from activation_matters.analysis.fixed_point_analysis import ICP_registration, get_fp_data_dict
 from activation_matters.plots.ploting_utils import normalize_color, plot_embedding, plot_aligned_FPs, plot_similarity_matrix, \
     plot_fixed_points
-from style.style_setup import set_up_plotting_styles
 import numpy as np
 import hydra
 from omegaconf import OmegaConf
 from tqdm.auto import tqdm
 import ray
 import re
+from activation_matters.plots.style.style_setup import set_up_plotting_styles
+
+
 # OmegaConf.register_new_resolver("eval", eval)
 
 @ray.remote
@@ -34,7 +36,7 @@ def run_mds_and_plot(cfg, attempt, img_name, Mat, img_save_folder, inds_list, le
 
 @hydra.main(version_base="1.3", config_path=f"../../configs", config_name=f'base')
 def plot_fixed_point_configurations(cfg):
-    os.environ["NUMEXPR_MAX_THREADS"] = "25"
+    os.environ["NUMEXPR_MAX_THREADS"] = "50"
     n_dim = 2
     show = False
     save = True
@@ -68,7 +70,8 @@ def plot_fixed_point_configurations(cfg):
     np.fill_diagonal(Mat, 0)
 
     img_name = f"MDS_fp_attempt=XXX_nPCs={n_components}_{dataSegment}{n_nets}_{control_type}.pdf"
-    ray.init()
+    ray.init(ignore_reinit_error=True, address="auto")
+    print(ray.available_resources())
     # Launch tasks in parallel
     results = [
         run_mds_and_plot.remote(cfg, attempt, img_name, Mat, img_save_folder,

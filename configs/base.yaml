@@ -1,8 +1,8 @@
 # @package _global_
 defaults:
   - _self_
-  - task: CDDM
+  - task: GoNoGo
   - paths: paths
 n_nets: 50
-dataSegment: bottom
+dataSegment: top
 control_type: "shuffled"

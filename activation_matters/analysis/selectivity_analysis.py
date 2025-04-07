@@ -1,4 +1,5 @@
 import os
+import itertools
 from scipy.linalg import orthogonal_procrustes
 from scipy.stats import ortho_group
 from sklearn.decomposition import PCA
@@ -8,7 +9,6 @@ from omegaconf import OmegaConf
 import ray
 from tqdm.auto import tqdm
 import pickle
-from itertools import chain
 from trainRNNbrain.training.training_utils import prepare_task_arguments
 from activation_matters.utils.trajectories_utils import get_trajectories
 
@@ -72,24 +72,26 @@ def get_selectivities_similarity(selectivities_list):
 
     # Submit all tasks to Ray
     futures = []
-    for i in range(n):
-        for j in range(i + 1, n):
-            futures.append(
-                computing_selectivities_similarity_inner_loop.remote(i, j, selectivities_list[i], selectivities_list[j])
-            )
+    for i, j in tqdm(list(itertools.combinations(range(n), 2))):
+        futures.append(computing_selectivities_similarity_inner_loop.remote(i, j, selectivities_list[i], selectivities_list[j]))
 
-    # Retrieve results incrementally
-    for future in tqdm(futures, desc="Computing similarities"):
-        try:
-            (i, j), score = ray.get(future)
-            Mat[i, j] = Mat[j, i] = score
-        except Exception as e:
-            print(f"Task failed for ({i}, {j}): {e}")
+    print("Now fetching the results from cores")
+    results = []
+    remaining_futures = futures.copy()
+    with tqdm(total=len(futures), desc="Fetching results", unit="tasks") as pbar:
+        while remaining_futures:
+            done, remaining_futures = ray.wait(remaining_futures, num_returns=min(2000, len(remaining_futures)))
+            results.extend(ray.get(done))
+            pbar.update(len(done))
 
+    print("Fetched the results from cores")
+    for (i, j), score in results:
+        Mat[i, j] = Mat[j, i] = score
     return Mat
 
 @hydra.main(version_base="1.3", config_path=f"../../configs", config_name=f'base')
 def selectivity_analysis(cfg):
+    os.environ["NUMEXPR_MAX_THREADS"] = "50"
     n_nets = cfg.n_nets
     dataSegment = cfg.dataSegment
     taskname = cfg.task.taskname
@@ -161,14 +163,18 @@ def selectivity_analysis(cfg):
                     inds_list.append(cnt + np.arange(len(trajectories)))
                     cnt += len(trajectories)
 
-        RNN_features = list(chain.from_iterable(RNN_features))
+        RNN_features = list(itertools.chain.from_iterable(RNN_features))
 
         # Launch tasks in parallel
-        ray.init(ignore_reinit_error=True)
+        ray.init(ignore_reinit_error=True, address="auto")
+        print(ray.available_resources())
+
         results = [extract_feature.remote(feature, n_PCs) for feature in RNN_features]
+
         RNN_features_processed = []
         for res in tqdm(results, desc="Extracting features"):
             RNN_features_processed.append(ray.get(res))
+
         ray.shutdown()
 
         data_dict = {

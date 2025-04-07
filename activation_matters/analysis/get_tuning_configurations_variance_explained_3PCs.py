@@ -4,8 +4,7 @@ from trainRNNbrain.training.training_utils import *
 from activation_matters.utils.trajectories_utils import *
 import hydra
 from omegaconf import OmegaConf
-from style.style_setup import set_up_plotting_styles
-from copy import deepcopy
+from activation_matters.plots.style.style_setup import set_up_plotting_styles
 from sklearn.decomposition import PCA
 OmegaConf.register_new_resolver("eval", eval)
 taskname = "MemoryNumber"

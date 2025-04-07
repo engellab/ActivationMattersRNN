@@ -1,12 +1,9 @@
 import numpy as np
-import hydra
 import os
 import hydra
-from omegaconf import OmegaConf
-from style.style_setup import set_up_plotting_styles
+from activation_matters.plots.style.style_setup import set_up_plotting_styles
 import pickle
 from matplotlib import pyplot as plt
-import seaborn as sns
 import pandas as pd
 mm = 1/25.4
 

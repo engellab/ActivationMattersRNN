@@ -118,7 +118,8 @@ show = False
 save = True
 @hydra.main(version_base="1.3", config_path=f"../../configs", config_name=f'base')
 def computing_fp(cfg):
-    os.environ["NUMEXPR_MAX_THREADS"] = "25"
+    os.environ["NUMEXPR_MAX_THREADS"] = "50"
+    os.environ["RAY_DEDUP_LOGS"] = "0"
     n_nets = cfg.n_nets
     dataSegment = cfg.dataSegment
     taskname = cfg.task.taskname
@@ -133,7 +134,9 @@ def computing_fp(cfg):
     if hasattr(task, 'random_window'):
         task.random_window = 0 # no randomness in the task structure for the analysis
 
-    ray.init(ignore_reinit_error=True)
+    ray.init(ignore_reinit_error=True, address="auto")
+    print(ray.available_resources())
+
     connectivity_dict = {}
     for activation_name in ["relu", "sigmoid", "tanh"]:
         for constrained in [True, False]:

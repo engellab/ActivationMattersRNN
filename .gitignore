@@ -174,7 +174,6 @@ activation_matters/analysis/outputs/2024-04-12/15-05-36/.hydra/hydra.yaml
 !/data/latent_circuits/LC_data_of_top_10RNNs_CDDM.pkl
 !/data/latent_circuits/LC_data_of_top_10RNNs_GoNoGo.pkl
 !/data/latent_circuits/LC_data_of_top_10RNNs_MemoryNumber.pkl
-/img
 /activation_matters/analysis/connectivity_analysis_TO_REFACTOR.py
 activation_matters/.DS_Store
 /jupyter

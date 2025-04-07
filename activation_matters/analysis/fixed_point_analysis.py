@@ -1,3 +1,4 @@
+import itertools
 import os
 from scipy.linalg import orthogonal_procrustes
 from scipy.stats import ortho_group
@@ -10,6 +11,8 @@ from omegaconf import OmegaConf
 from tqdm.auto import tqdm
 from matplotlib import pyplot as plt
 import ray
+import time
+import asyncio
 
 # Ray remote function for parallel computation
 @ray.remote(num_cpus=1)
@@ -77,32 +80,34 @@ def get_distance_matrix(points_source, labels_source, points_target, labels_targ
             distance[np.ix_(inds_source, inds_target)] = np.linalg.norm(points_of_type_source - points_of_type_target, axis=2)
     return distance
 
+
 def get_fp_similarity(fp_dict_combined, method='procrustes'):
-    fp_list = fp_dict_combined["fp_list"]
+    fp_list = [np.array(fp) for fp in fp_dict_combined["fp_list"]]  # Convert once
     labels_list = fp_dict_combined["labels_list"]
     n = len(fp_list)
     Mat = np.zeros((n, n))
 
-    # Submit all tasks to Ray
     futures = []
-    for i in range(n):
-        for j in range(i + 1, n):
-            # Pass FP_i and FP_j as NumPy arrays
-            futures.append(
-                computing_fixed_point_similarity_inner_loop.remote(
-                    i, j, np.array(fp_list[i]), np.array(fp_list[j]),
-                    labels_list[i], labels_list[j], method
-                )
-            )
+    for i, j in tqdm(list(itertools.combinations(range(n), 2))):
+        futures.append(
+            computing_fixed_point_similarity_inner_loop.remote(i, j,
+                                                               fp_list[i], fp_list[j],
+                                                               labels_list[i],
+                                                               labels_list[j],
+                                                               method))
 
-    # Retrieve results incrementally
-    for future in tqdm(futures, desc="Computing similarities"):
-        try:
-            (i, j), score = ray.get(future)
-            Mat[i, j] = Mat[j, i] = score
-        except Exception as e:
-            print(f"Task failed for ({i}, {j}): {e}")
+    print("Now fetching the results from cores")
+    results = []
+    remaining_futures = futures.copy()
+    with tqdm(total=len(futures), desc="Fetching results", unit="tasks") as pbar:
+        while remaining_futures:
+            done, remaining_futures = ray.wait(remaining_futures, num_returns=min(2000, len(remaining_futures)))
+            results.extend(ray.get(done))
+            pbar.update(len(done))
 
+    print("Fetched the results from cores")
+    for (i, j), score in results:
+        Mat[i, j] = Mat[j, i] = score
     return Mat
 
 def get_fp_data_dict(path_to_folder, net_types, control_type_searched, dataSegment, n_nets, n_PCs):
@@ -139,18 +144,19 @@ def get_fp_data_dict(path_to_folder, net_types, control_type_searched, dataSegme
                 if counter_dict[f"{net_type}_constrained={constrained}_control={control}"] > n_nets - 1: # enough networks is gathered
                     pass
                 else:
-                    if type(fixed_points) == list: # it sometimes happens that in a control network there are not fixed points
+                    if type(fixed_points) == list: # it sometimes happens that in a control network there are no fixed points
                         F = np.zeros((1, n_PCs))
                     else:
-                        pca = PCA(n_components=n_PCs)
-                        try:
-                            F = pca.fit_transform(fixed_points)
-                        except:
-                            F = pca.fit_transform(fixed_points)
-                            F = (F - np.mean(F, axis=0))
-                            R = np.sqrt(np.mean(np.sum(F ** 2, axis=1)))
-                            F = F / R # remove the scale
-                            print(f"{net_type}_constrained={constrained}_control={control}; Explained variance by {n_PCs} PCs: {np.sum(pca.explained_variance_ratio_)} R:{R}")
+                        F = np.zeros((fixed_points.shape[0], n_PCs))
+                        n_features = min(n_PCs, fixed_points.shape[0])
+                        pca = PCA(n_components=n_features)
+                        F[:, :n_features] = pca.fit_transform(fixed_points)
+                        F = (F - np.mean(F, axis=0))
+                        R = np.sqrt(np.mean(np.sum(F ** 2, axis=1)))
+                        F = F / R # remove the scale
+                        if F.shape[1] != n_PCs:
+                            raise ValueError("Something is wrong here!")
+                        # print(f"{net_type}_constrained={constrained}_control={control}; Explained variance by {n_PCs} PCs: {np.sum(pca.explained_variance_ratio_)} R:{R}")
                     d = {}
                     input_IDs = np.unique(np.array([int(l.split("_")[-1]) for l in labels]))
                     for i in input_IDs:
@@ -171,7 +177,7 @@ save = True
 show = True
 @hydra.main(version_base="1.3", config_path=f"../../configs", config_name=f'base')
 def fixed_point_analysis(cfg):
-    os.environ["NUMEXPR_MAX_THREADS"] = "25"
+    os.environ["NUMEXPR_MAX_THREADS"] = "50"
     n_nets = cfg.n_nets
     dataSegment = cfg.dataSegment
     taskname = cfg.task.taskname
@@ -182,7 +188,8 @@ def fixed_point_analysis(cfg):
     net_types = ["relu", "sigmoid", "tanh"]
     data_dict = get_fp_data_dict(path_to_folder, net_types, control_type_searched, dataSegment, n_nets, n_PCs)
 
-    ray.init(ignore_reinit_error=True)
+    ray.init(ignore_reinit_error=True, address="auto")
+    print(ray.available_resources())
 
     file_path = os.path.join(aux_datasets_folder, f"FPs_{dataSegment}{n_nets}_{control_type_searched}.pkl")
     if not os.path.exists(file_path):
