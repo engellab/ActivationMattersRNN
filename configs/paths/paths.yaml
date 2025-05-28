@@ -1,5 +1,5 @@
 # @package paths
-style_path: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN"
+style_path: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/activation_matters/plots"
 trained_RNNs_path: "/Users/tolmach/Documents/GitHub/trainRNNbrain/data/trained_RNNs"
 RNN_dataset_path: "/Users/tolmach/Documents/GitHub/ActivationMattersRNN/data/RNN_datasets"
 LC_dataset_path: "/Users/tolmach/Documents/GitHub/latent_circuit_inference/data/inferred_LCs"

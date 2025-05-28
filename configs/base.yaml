@@ -1,7 +1,7 @@
 # @package _global_
 defaults:
   - _self_
-  - task: GoNoGo
+  - task: MemoryNumber
   - paths: paths
 n_nets: 50
 dataSegment: top
