@@ -74,6 +74,7 @@ def trajectory_endpoints_analysis(cfg):
     dataset = pickle.load(open(dataset_path, "rb"))
     n_PCs = cfg.task.trajectory_endpoints_analysis_params.n_PCs
     control_type = cfg.control_type #shuffled or untrained
+    seed = cfg.seed
 
     file_path = os.path.join(aux_datasets_folder, f"{feature_type}_{dataSegment}{n_nets}_{control_type}.pkl")
     if not os.path.exists(file_path):
@@ -93,7 +94,7 @@ def trajectory_endpoints_analysis(cfg):
             task.coherences = np.array(list(cfg.task.trajectory_analysis_params.coherences))
         if hasattr(task, 'random_window'):
             task.random_window = 0 # eliminating any source of randomness while analysing the trajectories
-        task.seed = 0 # for consistency
+        task.seed = seed # for consistency
 
         activations_list = ["relu", "sigmoid", "tanh"]
         constrained_list = [True, False]
@@ -131,7 +132,8 @@ def trajectory_endpoints_analysis(cfg):
                                                     activation_slope=activation_slope,
                                                     get_batch_args={},
                                                     shuffled=shuffled,
-                                                    random=random)
+                                                    random=random,
+                                                    seed=seed)
                     RNN_features.append(trajectories)
                     inds_list.append(cnt + np.arange(len(trajectories)))
                     cnt += len(trajectories)
@@ -140,7 +142,10 @@ def trajectory_endpoints_analysis(cfg):
         RNN_features_processed = []
 
         # Launch tasks in parallel
-        ray.init(ignore_reinit_error=True, address="auto")
+        if not cfg.paths.local:
+            ray.init(ignore_reinit_error=True, address="auto")
+        else:
+            ray.init(ignore_reinit_error=True)
         print(ray.available_resources())
 
         results = [extract_feature.remote(feature, n_PCs) for feature in RNN_features]

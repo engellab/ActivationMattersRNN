@@ -3,17 +3,19 @@ import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 from omegaconf import OmegaConf
 from trainRNNbrain.training.training_utils import prepare_task_arguments
-from activation_matters.utils.feautre_extraction_utils import get_dataset
-
+import pickle
 np.set_printoptions(suppress=True)
 from trainRNNbrain.rnns.RNN_numpy import RNN_numpy
 from trainRNNbrain.analyzers.PerformanceAnalyzer import *
-
 import hydra
-OmegaConf.register_new_resolver("eval", eval)
-
-
 from matplotlib import rcParams
+OmegaConf.register_new_resolver("eval", eval)
+mm = 1/25.4
+
+n_nets = 3
+taskname = "CDDM"
+show = False
+save = True
 
 # Set global font properties
 rcParams['font.family'] = 'helvetica'
@@ -100,44 +102,32 @@ def plot_psychometric_data(psychometric_data, show=True, save=False, path=None):
     plt.close(fig)
     return None
 
-
-n_nets = 10
-taskname = "CDDM"
-show = False
-save = True
-@hydra.main(version_base="1.3", config_path=f"../../configs/task", config_name=f'{taskname}')
+@hydra.main(version_base="1.3", config_path=f"../../configs", config_name=f'base')
 def analyze_behavior(cfg):
-    file_str = os.path.join(cfg.task.paths.RNN_dataset_path, f"{taskname}_top30.pkl")
-    data_save_folder = cfg.task.paths.fixed_points_data_folder
-    img_save_folder = cfg.task.paths.img_folder
+    taskname = cfg.task.taskname
+    dataset_path = os.path.join(f"{cfg.paths.RNN_dataset_path}", f"{taskname}_top50.pkl")
+    dataset = pickle.load(open(dataset_path, "rb"))
+    img_save_folder = os.path.join(cfg.paths.img_folder, taskname)
 
     # defining the task
     task_conf = prepare_task_arguments(cfg_task=cfg.task, dt=cfg.task.dt)
     task = hydra.utils.instantiate(task_conf)
     coh_bounds = (-4, 4)
-    DF_dict = {}
     connectivity_dict = {}
-    for activation_name in ["relu"]:
+    for activation_name in ["relu", "tanh"]:
+        print(activation_name)
         for constrained in [True]:
-            activation_slope = eval(f"cfg.task.dataset_filtering_params.{activation_name}_filters.activation_slope")
-            filters = {"activation_name": ("==", activation_name),
-                       "activation_slope": ("==", activation_slope),
-                       "RNN_score": ("<=", eval(f"cfg.task.dataset_filtering_params.{activation_name}_filters.RNN_score_filter")),
-                       "constrained": ("==", constrained),
-                       "lambda_r": (">=", eval(f"cfg.task.dataset_filtering_params.{activation_name}_filters.lambda_r"))}
-
-            DF_dict[activation_name] = get_dataset(file_str, filters)[:n_nets]
-
             connectivity_dict[activation_name] = {}
-            connectivity_dict[activation_name]["inp"] = DF_dict[activation_name]["W_inp_RNN"].tolist()
-            connectivity_dict[activation_name]["rec"] = DF_dict[activation_name]["W_rec_RNN"].tolist()
-            connectivity_dict[activation_name]["out"] = DF_dict[activation_name]["W_out_RNN"].tolist()
-            folder_names = DF_dict[activation_name]["folder"].tolist()
+            connectivity_dict[activation_name]["inp"] = dataset[activation_name][f"Dale={constrained}"]["W_inp_RNN"].tolist()
+            connectivity_dict[activation_name]["rec"] = dataset[activation_name][f"Dale={constrained}"]["W_rec_RNN"].tolist()
+            connectivity_dict[activation_name]["out"] = dataset[activation_name][f"Dale={constrained}"]["W_out_RNN"].tolist()
+
             for i in range(n_nets):
-                print(folder_names[i])
                 W_inp = connectivity_dict[activation_name]["inp"][i]
                 W_rec = connectivity_dict[activation_name]["rec"][i]
                 W_out = connectivity_dict[activation_name]["out"][i]
+
+                activation_slope = dataset[activation_name][f"Dale={constrained}"]["activation_slope"].tolist()[0]
 
                 N = W_inp.shape[0]
                 net_params = {"N": N,
@@ -151,7 +141,6 @@ def analyze_behavior(cfg):
                               "bias_rec": None,
                               "y_init": np.zeros(N)}
                 rnn = RNN_numpy(**net_params)
-
 
                 mask = np.concatenate([np.arange(100), 200 + np.arange(100)])
                 pa = PerformanceAnalyzerCDDM(rnn)
@@ -168,36 +157,23 @@ def analyze_behavior(cfg):
                 cropped_psychometric_data = pa.psychometric_data
                 inds = np.where(np.abs(np.array(cropped_psychometric_data["coherence_lvls"])) < 1.1)[0]
                 cropped_psychometric_data["coherence_lvls_relevant"] = cropped_psychometric_data["coherence_lvls"]
-                cropped_psychometric_data["coherence_lvls_irrelevant"] = [cropped_psychometric_data["coherence_lvls"][i] for i in inds]
-                cropped_psychometric_data["motion"]["right_choice_percentage"] = cropped_psychometric_data["motion"]["right_choice_percentage"][:, inds]
+                cropped_psychometric_data["coherence_lvls_irrelevant"] = [cropped_psychometric_data["coherence_lvls"][i]
+                                                                          for i in inds]
+                cropped_psychometric_data["motion"]["right_choice_percentage"] = cropped_psychometric_data["motion"][
+                                                                                     "right_choice_percentage"][:, inds]
                 cropped_psychometric_data["motion"]["MSE"] = cropped_psychometric_data["motion"]["MSE"][:, inds]
                 # cropped_psychometric_data["motion"]["coherence_levels_x"] = [cropped_psychometric_data["coherence_lvls"][i] for i in inds]
                 # cropped_psychometric_data["motion"]["coherence_levels_y"] = cropped_psychometric_data["coherence_lvls"]
 
-
-                cropped_psychometric_data["color"]["right_choice_percentage"] = cropped_psychometric_data["color"]["right_choice_percentage"][inds, :]
+                cropped_psychometric_data["color"]["right_choice_percentage"] = cropped_psychometric_data["color"][
+                                                                                    "right_choice_percentage"][inds, :]
                 cropped_psychometric_data["color"]["MSE"] = cropped_psychometric_data["color"]["MSE"][inds, :]
                 # cropped_psychometric_data["color"]["coherence_levels_x"] = cropped_psychometric_data["coherence_lvls"]
                 # cropped_psychometric_data["color"]["coherence_levels_y"] = [cropped_psychometric_data["coherence_lvls"][i] for i in inds]
                 plot_psychometric_data(cropped_psychometric_data, show, save=save, path=path)
 
                 plt.close()
-                # colors = ["red", "blue", "green", "magenta", "cyan", "purple"]
-                # labels = ["Right", "Left"]
-                # fig, ax = plt.subplots(inputs.shape[-1], 1, figsize = (3,2))
-                # plt.suptitle(f"Activation function: {activation_name}")
-                # for j in range(outputs.shape[-1]):
-                #     for k in range(outputs.shape[0]):
-                #         ax[j].plot(outputs[k, :, j].T,
-                #                    color=colors[k],
-                #                    label=labels[k],
-                #                    linewidth=2)
-                #         ax[j].set_ylim([-0.1, 1.3])
-                #         ax[j].axhline(0, linestyle='--')
-                # ax[0].legend(loc="upper left")
-                # path = os.path.join(img_save_folder, f"behavior_{taskname}_{activation_name}_{i}.pdf")
-                # plt.savefig(path, bbox_inches='tight', dpi=300, transparent=True)
-                # plt.show()
+
 
 if __name__ == '__main__':
     analyze_behavior()

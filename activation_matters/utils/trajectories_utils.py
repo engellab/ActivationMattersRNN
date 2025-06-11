@@ -1,5 +1,5 @@
 import numpy as np
-
+import torch
 np.set_printoptions(suppress=True)
 import sys
 sys.path.append("/")
@@ -25,8 +25,9 @@ def get_features(trajectory, ts, var_threshold=0.99):
     F_projected = pca.components_[:n, :] @ F.T
     return F_projected
 
-def shuffle_connectivity(W_inp, W_rec, W_out):
 
+def shuffle_connectivity(W_inp, W_rec, W_out, seed=42):
+    rng = np.random.default_rng(seed)  # Use local random generator
     N = W_inp.shape[0]
     n_inputs = W_inp.shape[1]
     n_outputs = W_out.shape[0]
@@ -35,11 +36,11 @@ def shuffle_connectivity(W_inp, W_rec, W_out):
     W_rec_sh = np.copy(W_rec)
     W_out_sh = np.copy(W_out)
 
-    for c in range(N): # go column by colum
+    for c in range(N): # go column by column
         inds = np.concatenate([np.arange(c), np.arange(c + 1, N)])
-        W_rec_sh[inds, c] = np.random.choice(W_rec[inds, c], size=N - 1, replace=False)
-        W_inp_sh[c, :] = np.random.choice(W_inp[c, :], size=(n_inputs,), replace=False)
-        W_out_sh = np.random.choice(W_out[:, c], size=(n_outputs,), replace=False)
+        W_rec_sh[inds, c] = rng.choice(W_rec[inds, c], size=N - 1, replace=False)
+        W_inp_sh[c, :] = rng.choice(W_inp[c, :], size=(n_inputs,), replace=False)
+        W_out_sh[:, c] = rng.choice(W_out[:, c], size=(n_outputs,), replace=False)
     return W_inp_sh, W_rec_sh, W_out_sh
 
 def get_trajectories(dataset, task,
@@ -49,30 +50,35 @@ def get_trajectories(dataset, task,
                      dt=1, tau=10,
                      shuffled=False,
                      random=False,
-                     constrained=False):
+                     constrained=False,
+                     seed=42):
     inputs, targets, conditions = task.get_batch(**get_batch_args)
     trajectories_list = []
     W_inp_list = dataset["W_inp_RNN"] if type(dataset["W_inp_RNN"]) == list else dataset["W_inp_RNN"].tolist()
     W_rec_list = dataset["W_rec_RNN"] if type(dataset["W_rec_RNN"]) == list else dataset["W_rec_RNN"].tolist()
     W_out_list = dataset["W_out_RNN"] if type(dataset["W_out_RNN"]) == list else dataset["W_out_RNN"].tolist()
+    generator = torch.Generator(device='cpu')
 
     for i in (range(len(W_inp_list))):
+        generator.manual_seed(seed + i)
         N = W_inp_list[i].shape[0]
 
         W_inp = W_inp_list[i]
         W_rec = W_rec_list[i]
         W_out = W_out_list[i]
         if shuffled:
-            W_inp, W_rec, W_out = shuffle_connectivity(W_inp, W_rec, W_out)
+            W_inp, W_rec, W_out = shuffle_connectivity(W_inp, W_rec, W_out, seed=seed + i)
         if random:
             if constrained:
                 W_rec, W_inp, W_out, _, _, _, _ = RNN_torch.get_connectivity_Dale(N=N,
                                                                                   num_inputs=task.n_inputs,
-                                                                                  num_outputs=task.n_outputs)
+                                                                                  num_outputs=task.n_outputs,
+                                                                                  generator=generator)
             else:
                 W_rec, W_inp, W_out, _, _, _ = RNN_torch.get_connectivity(N=N,
                                                                           num_inputs=task.n_inputs,
-                                                                          num_outputs=task.n_outputs)
+                                                                          num_outputs=task.n_outputs,
+                                                                          generator=generator)
             W_inp = W_inp.detach().numpy()
             W_rec = W_rec.detach().numpy()
             W_out = W_out.detach().numpy()

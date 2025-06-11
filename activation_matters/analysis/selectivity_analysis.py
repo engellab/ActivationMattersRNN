@@ -15,10 +15,10 @@ from activation_matters.utils.trajectories_utils import get_trajectories
 
 # Ray remote function for parallel computation
 @ray.remote(num_cpus=1)  # Limit each task to 1 CPU
-def computing_selectivities_similarity_inner_loop(i, j, Ti, Tj):
+def computing_selectivities_similarity_inner_loop(i, j, Ti, Tj, seed=42):
     # Compute similarity (assuming ICP_registration is symmetric)
-    _, score_1 = ICP_registration(points_source=Ti, points_target=Tj, max_iter=1000, tol=1e-10)
-    _, score_2 = ICP_registration(points_source=Tj, points_target=Ti, max_iter=1000, tol=1e-10)
+    _, score_1 = ICP_registration(points_source=Ti, points_target=Tj, max_iter=1000, tol=1e-10, seed=seed)
+    _, score_2 = ICP_registration(points_source=Tj, points_target=Ti, max_iter=1000, tol=1e-10, seed=seed)
     score = (score_1 + score_2) / 2
     return (i, j), score
 
@@ -32,12 +32,12 @@ def extract_feature(trajectory, n_PCs):
     selectivities_normalized = (selectivities - mean) / np.sqrt(np.sum(np.var(selectivities - mean, axis=0)))
     return selectivities_normalized
 
-def register_point_cloud(points_source, points_target, max_iter, tol):
+def register_point_cloud(points_source, points_target, max_iter, tol, seed):
     c = 0
     change = np.inf
     mse_prev = np.inf
     mse = np.inf
-    Q = ortho_group.rvs(dim=points_target.shape[1])
+    Q = ortho_group.rvs(dim=points_target.shape[1], random_state=seed)
     Q = Q[:points_source.shape[1], :points_target.shape[1]]
     while c < max_iter and change > tol:
         # For each source point, find a matching target point
@@ -50,10 +50,10 @@ def register_point_cloud(points_source, points_target, max_iter, tol):
         c += 1
     return Q, mse
 
-def ICP_registration(points_source, points_target, n_tries=60, max_iter=1000, tol=1e-10):
+def ICP_registration(points_source, points_target, n_tries=60, max_iter=1000, tol=1e-10, seed=42):
     results = []
     for t in range(n_tries):
-        results.append(register_point_cloud(points_source, points_target, max_iter, tol))
+        results.append(register_point_cloud(points_source, points_target, max_iter, tol, seed=seed + t))
     Qs = [el[0] for el in results]
     mses = [el[1] for el in results]
     best_mse = np.min(mses)
@@ -61,19 +61,23 @@ def ICP_registration(points_source, points_target, n_tries=60, max_iter=1000, to
     return best_Q, best_mse
 
 def get_distance_matrix(points_source, points_target):
-    points_source_ = np.repeat(points_source[:, np.newaxis, :], repeats=points_target.shape[0], axis=1)
-    points_target_ = np.repeat(points_target[np.newaxis, :, :], repeats=points_source.shape[0], axis=0)
-    distance = np.linalg.norm(points_source_ - points_target_, axis=2)
-    return distance
+    source_sq = np.sum(points_source ** 2, axis=1, keepdims=True)  # (N, 1)
+    target_sq = np.sum(points_target ** 2, axis=1, keepdims=True).T  # (1, M)
+    cross = np.dot(points_source, points_target.T)  # (N, M)
+    dist_sq = source_sq + target_sq - 2 * cross
+    dist_sq = np.maximum(dist_sq, 0)
+    return np.sqrt(dist_sq)
 
-def get_selectivities_similarity(selectivities_list):
+def get_selectivities_similarity(selectivities_list, seed=42):
     n = len(selectivities_list)
     Mat = np.zeros((n, n))
 
     # Submit all tasks to Ray
     futures = []
     for i, j in tqdm(list(itertools.combinations(range(n), 2))):
-        futures.append(computing_selectivities_similarity_inner_loop.remote(i, j, selectivities_list[i], selectivities_list[j]))
+        futures.append(computing_selectivities_similarity_inner_loop.remote(i, j,
+                                                                            selectivities_list[i], selectivities_list[j],
+                                                                            seed=seed + i*j + j))
 
     print("Now fetching the results from cores")
     results = []
@@ -100,6 +104,7 @@ def selectivity_analysis(cfg):
     dataset = pickle.load(open(dataset_path, "rb"))
     n_PCs = cfg.task.selectivities_analysis_params.n_PCs
     control_type = cfg.control_type  # shuffled or untrained
+    seed = cfg.seed
 
     file_path = os.path.join(aux_datasets_folder, f"selectivities_{dataSegment}{n_nets}_{control_type}.pkl")
     if not os.path.exists(file_path):
@@ -118,7 +123,7 @@ def selectivity_analysis(cfg):
             task.coherences = np.array(list(cfg.task.trajectory_analysis_params.coherences))
         if hasattr(task, 'random_window'):
             task.random_window = 0  # Eliminating any source of randomness while analysing the trajectories
-        task.seed = 0  # For consistency
+        task.seed = seed  # For consistency
 
         activations_list = ["relu", "sigmoid", "tanh"]
         constrained_list = [True, False]
@@ -158,7 +163,8 @@ def selectivity_analysis(cfg):
                                                     dt=1, tau=10,
                                                     shuffled=shuffled,
                                                     random=random,
-                                                    constrained=constrained)
+                                                    constrained=constrained,
+                                                    seed=seed)
                     RNN_features.append(trajectories)
                     inds_list.append(cnt + np.arange(len(trajectories)))
                     cnt += len(trajectories)
@@ -166,7 +172,10 @@ def selectivity_analysis(cfg):
         RNN_features = list(itertools.chain.from_iterable(RNN_features))
 
         # Launch tasks in parallel
-        ray.init(ignore_reinit_error=True, address="auto")
+        if not cfg.paths.local:
+            ray.init(ignore_reinit_error=True, address="auto")
+        else:
+            ray.init(ignore_reinit_error=True)
         print(ray.available_resources())
 
         results = [extract_feature.remote(feature, n_PCs) for feature in RNN_features]
@@ -192,8 +201,11 @@ def selectivity_analysis(cfg):
     # Calculate the similarity between the selectivities
     if not os.path.exists(file_path):
         print(f"Calculating the similarity between the selectivities")
-        RNN_features_processed = data_dict[f"RNN_selectivities_processed"]
-        Mat = get_selectivities_similarity(RNN_features_processed)
+        key = "RNN_selectivities_processed"
+        if "RNN_tunings_list" in data_dict.keys():
+            key = "RNN_tunings_list"
+        RNN_features_processed = data_dict[key]
+        Mat = get_selectivities_similarity(RNN_features_processed, seed=seed)
         with open(file_path, "wb") as f:
             pickle.dump(Mat, f)
 

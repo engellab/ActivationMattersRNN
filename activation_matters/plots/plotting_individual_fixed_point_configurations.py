@@ -1,7 +1,7 @@
 import os
 
 from activation_matters.analysis.fixed_point_analysis import ICP_registration, get_fp_data_dict
-from activation_matters.plots.ploting_utils import normalize_color, plot_aligned_FPs
+from activation_matters.plots.ploting_utils import normalize_color, plot_aligned_FPs, plot_fixed_points
 from activation_matters.plots.style.style_setup import set_up_plotting_styles
 import numpy as np
 import hydra
@@ -10,9 +10,10 @@ from omegaconf import OmegaConf
 
 @hydra.main(version_base="1.3", config_path=f"../../configs", config_name=f'base')
 def plot_fixed_point_configurations(cfg):
-    n_dim = 3
-    n_nets_to_plot = 3
-    show = True
+    n_dim = 2
+    n_nets_to_plot = 10
+    seed = cfg.seed
+    show = False
     save = True
     taskname = cfg.task.taskname 
     img_save_folder = os.path.join(cfg.paths.img_folder, taskname)
@@ -51,7 +52,7 @@ def plot_fixed_point_configurations(cfg):
                 for i in range(len(fp_list)):
                     Q, score = ICP_registration(points_source=fp_list[i], labels_source=labels_list[i],
                                                 points_target=fp_list[0], labels_target=labels_list[0],
-                                                max_iter=1000, tol=1e-10)
+                                                max_iter=1000, tol=1e-10, seed=seed + i)
                     Qs.append(np.copy(Q))
                 path = os.path.join(img_save_folder, f"registered_fp_struct_{net_type}_controlType={control_type}_control={control}_constrained={constrained}_source_{n_dim}D")
 
@@ -81,19 +82,19 @@ def plot_fixed_point_configurations(cfg):
                 n_nets = len(fp_dict["fp_list"])
                 legends.append(f"{net_type}_constrained={constrained}")
                 # plot fixed points individually:
-                # for i in range(n_nets_to_plot):
-                #     path = os.path.join(img_save_folder, f"fp_struct_{net_type}_constrained={constrained}_controlType={control_type}_control={control}_net={i}.pdf")
-                #     plot_fixed_points(fixed_point_struct=fp_dict["fp_list"][i], fp_labels=fp_dict["labels_list"][i],
-                #                       colors=colors,
-                #                       markers=markers,
-                #                       edgecolors=edgecolors,
-                #                       n_dim=2, show=show, save=save, path=path)
-                #     path = os.path.join(img_save_folder, f"fp_struct3D_{net_type}_constrained={constrained}_controlType={control_type}_control={control}_net={i}.pdf")
-                #     plot_fixed_points(fixed_point_struct=fp_dict["fp_list"][i], fp_labels=fp_dict["labels_list"][i],
-                #                       colors=colors,
-                #                       markers=markers,
-                #                       edgecolors=edgecolors,
-                #                       n_dim=3, show=show, save=save, path=path)
+                for i in range(n_nets_to_plot):
+                    path = os.path.join(img_save_folder, f"fp_struct_{net_type}_constrained={constrained}_controlType={control_type}_control={control}_net={i}.pdf")
+                    plot_fixed_points(fixed_point_struct=fp_dict["fp_list"][i], fp_labels=fp_dict["labels_list"][i],
+                                      colors=colors,
+                                      markers=markers,
+                                      edgecolors=edgecolors,
+                                      n_dim=2, show=show, save=save, path=path)
+                    path = os.path.join(img_save_folder, f"fp_struct3D_{net_type}_constrained={constrained}_controlType={control_type}_control={control}_net={i}.pdf")
+                    plot_fixed_points(fixed_point_struct=fp_dict["fp_list"][i], fp_labels=fp_dict["labels_list"][i],
+                                      colors=colors,
+                                      markers=markers,
+                                      edgecolors=edgecolors,
+                                      n_dim=3, show=show, save=save, path=path)
     fp_dict_combined["inds_list"] = inds_list
     fp_dict_combined["legends"] = legends
     # pickle.dump(fp_dict_combined, open(os.path.join(aux_datasets_folder, f"FP_controlType={control_type}_control={control}.pkl"), "wb+"))

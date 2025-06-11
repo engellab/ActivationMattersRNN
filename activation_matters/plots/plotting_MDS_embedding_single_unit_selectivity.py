@@ -14,7 +14,8 @@ def run_mds_and_plot(cfg, attempt, img_name, Mat, img_save_folder, inds_list, le
     set_up_plotting_styles(cfg.paths.style_path)
     # Run MDS
     img_name = re.sub(r"XXX", str(attempt), img_name)
-    mds = MDS(n_components=2, dissimilarity='precomputed', n_init=101, eps=1e-6, max_iter=1000)
+    mds = MDS(n_components=2, dissimilarity='precomputed',
+              n_init=101, eps=1e-6, max_iter=1000, random_state=attempt)
     mds.fit(Mat)
     embedding = mds.embedding_
 
@@ -26,7 +27,7 @@ def run_mds_and_plot(cfg, attempt, img_name, Mat, img_save_folder, inds_list, le
 
 
 @hydra.main(version_base="1.3", config_path=f"../../configs/", config_name=f'base')
-def plot_selectivities(cfg):
+def plot_MDS_of_selectivities(cfg):
     show = False
     save = True
     feature_type = "selectivities"
@@ -37,6 +38,7 @@ def plot_selectivities(cfg):
     img_save_folder = os.path.join(cfg.paths.img_folder, taskname)
     n_nets = cfg.n_nets
     dataSegment = cfg.dataSegment
+    seed = cfg.seed
 
     # defining the task
     task_conf = prepare_task_arguments(cfg_task=cfg.task, dt=cfg.task.dt)
@@ -45,7 +47,7 @@ def plot_selectivities(cfg):
         task.coherences = np.array([-1, -0.5, 0, 0.5, 1.0])
     if hasattr(task, 'random_window'):
         task.random_window = 0
-    task.seed = 0 # for consistency
+    task.seed = seed # for consistency
     inputs, targets, conditions = task.get_batch()
 
     data_dict = pickle.load(open(os.path.join(aux_datasets_folder, f"{feature_type}_{dataSegment}{n_nets}_{control_type}.pkl"), "rb+"))
@@ -71,7 +73,10 @@ def plot_selectivities(cfg):
     np.fill_diagonal(Mat, 0)
 
     img_name = f"MDS_{feature_type}_attempt=XXX_{dataSegment}{n_nets}_{control_type}.pdf"
-    ray.init(ignore_reinit_error=True, address="auto")
+    if not cfg.paths.local:
+        ray.init(ignore_reinit_error=True, address="auto")
+    else:
+        ray.init(ignore_reinit_error=True)
     print(ray.available_resources())
     # Launch tasks in parallel
     results = [
@@ -84,4 +89,4 @@ def plot_selectivities(cfg):
 
 
 if __name__ == '__main__':
-    plot_selectivities()
+    plot_MDS_of_selectivities()

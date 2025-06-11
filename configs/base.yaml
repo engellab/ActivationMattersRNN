@@ -1,8 +1,9 @@
 # @package _global_
 defaults:
   - _self_
-  - task: MemoryNumber
+  - task: GoNoGo
   - paths: paths
+seed: 42
 n_nets: 50
 dataSegment: top
 control_type: "shuffled"

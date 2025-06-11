@@ -2,10 +2,10 @@ import numpy as np
 np.set_printoptions(suppress=True)
 
 from activation_matters.analysis.trajectory_analysis import *
-from activation_matters.plots.plotting_MDS_embedding_trajectories import plot_trajectories
+from activation_matters.plots.plotting_MDS_embedding_trajectories import plot_MDS_of_trajectories
 
 from activation_matters.analysis.selectivity_analysis import *
-from activation_matters.plots.plotting_MDS_embedding_single_unit_selectivity import plot_selectivities
+from activation_matters.plots.plotting_MDS_embedding_single_unit_selectivity import plot_MDS_of_selectivities
 
 from activation_matters.analysis.computing_fp import *
 from activation_matters.analysis.fixed_point_analysis import *
@@ -28,12 +28,12 @@ def run_entire_pipeline(cfg):
     print(f"{cfg.task.taskname}: Analyzing trajectories...")
     trajectory_analysis(cfg)
     print(f"{cfg.task.taskname}: Plotting embedding of trajectories...")
-    plot_trajectories(cfg)
+    plot_MDS_of_trajectories(cfg)
 
     print(f"{cfg.task.taskname}: Analyzing single-unit selectivity...")
     selectivity_analysis(cfg)
     print(f"{cfg.task.taskname}: Plotting embedding of single-unit selectivity...")
-    plot_selectivities(cfg)
+    plot_MDS_of_selectivities(cfg)
 
     print(f"{cfg.task.taskname}: Computing fixed points...")
     computing_fp(cfg)
@@ -46,10 +46,6 @@ def run_entire_pipeline(cfg):
     trajectory_endpoints_analysis(cfg)
     print(f"{cfg.task.taskname}: Plotting embedding of trajectory endpoints...")
     plot_trajectory_endpoints(cfg)
-
-
-
-
 
 if __name__ == '__main__':
     run_entire_pipeline()

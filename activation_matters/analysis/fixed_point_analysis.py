@@ -16,29 +16,30 @@ import asyncio
 
 # Ray remote function for parallel computation
 @ray.remote(num_cpus=1)
-def computing_fixed_point_similarity_inner_loop(i, j, FP_i, FP_j, labels_i, labels_j, method):
+def computing_fixed_point_similarity_inner_loop(i, j, FP_i, FP_j, labels_i, labels_j, method, seed=42):
     # Convert FP_i and FP_j to NumPy arrays if they are lists
     FP_i = np.array(FP_i) if isinstance(FP_i, list) else FP_i
     FP_j = np.array(FP_j) if isinstance(FP_j, list) else FP_j
 
     _, score_1 = ICP_registration(
         points_source=FP_j, labels_source=labels_j,
-        points_target=FP_i, labels_target=labels_i, method=method
+        points_target=FP_i, labels_target=labels_i, method=method, seed=seed
     )
 
     _, score_2 = ICP_registration(
         points_source=FP_i, labels_source=labels_i,
-        points_target=FP_j, labels_target=labels_j, method=method
+        points_target=FP_j, labels_target=labels_j, method=method, seed=seed
     )
     score = (score_1 + score_2) / 2
     return (i, j), score
 
-def register_fixed_points(points_source, points_target, labels_source, labels_target, max_iter, tol, method='procrustes'):
+def register_fixed_points(points_source, points_target, labels_source, labels_target, max_iter, tol,
+                          method='procrustes', seed=42):
     c = 0
     change = np.inf
     mse_prev = np.inf
     mse = np.inf
-    Q = ortho_group.rvs(dim=points_target.shape[1])
+    Q = ortho_group.rvs(dim=points_target.shape[1], random_state=seed)
     Q = Q[:points_source.shape[1], :points_target.shape[1]]
     while c < max_iter and change > tol:
         # For each source point, find a matching target point
@@ -58,10 +59,12 @@ def register_fixed_points(points_source, points_target, labels_source, labels_ta
         c += 1
     return Q, mse
 
-def ICP_registration(points_source, labels_source, points_target, labels_target, n_tries=60, max_iter=1000, tol=1e-10, method="procrustes"):
+def ICP_registration(points_source, labels_source, points_target, labels_target,
+                     n_tries=60, max_iter=1000, tol=1e-10, method="procrustes", seed=42):
     results = []
     for t in range(n_tries):
-        results.append(register_fixed_points(points_source, points_target, labels_source, labels_target, max_iter, tol, method=method))
+        results.append(register_fixed_points(points_source, points_target, labels_source, labels_target,
+                                             max_iter, tol, method=method, seed=seed + t))
     Qs = [el[0] for el in results]
     mses = [el[1] for el in results]
     best_mse = np.min(mses)
@@ -81,7 +84,7 @@ def get_distance_matrix(points_source, labels_source, points_target, labels_targ
     return distance
 
 
-def get_fp_similarity(fp_dict_combined, method='procrustes'):
+def get_fp_similarity(fp_dict_combined, method='procrustes', seed=42):
     fp_list = [np.array(fp) for fp in fp_dict_combined["fp_list"]]  # Convert once
     labels_list = fp_dict_combined["labels_list"]
     n = len(fp_list)
@@ -94,7 +97,9 @@ def get_fp_similarity(fp_dict_combined, method='procrustes'):
                                                                fp_list[i], fp_list[j],
                                                                labels_list[i],
                                                                labels_list[j],
-                                                               method))
+                                                               method=method,
+                                                               seed=seed + i*j + j)
+        )
 
     print("Now fetching the results from cores")
     results = []
@@ -187,8 +192,11 @@ def fixed_point_analysis(cfg):
     control_type_searched = cfg.control_type
     net_types = ["relu", "sigmoid", "tanh"]
     data_dict = get_fp_data_dict(path_to_folder, net_types, control_type_searched, dataSegment, n_nets, n_PCs)
-
-    ray.init(ignore_reinit_error=True, address="auto")
+    seed = cfg.seed
+    if not cfg.paths.local:
+        ray.init(ignore_reinit_error=True, address="auto")
+    else:
+        ray.init(ignore_reinit_error=True)
     print(ray.available_resources())
 
     file_path = os.path.join(aux_datasets_folder, f"FPs_{dataSegment}{n_nets}_{control_type_searched}.pkl")
@@ -219,7 +227,7 @@ def fixed_point_analysis(cfg):
     fp_dict_combined = pickle.load(open(file_path, "rb+"))
     file_path = os.path.join(aux_datasets_folder, f"FPs_similarity_matrix_{dataSegment}{n_nets}_{control_type_searched}.pkl")
     if not os.path.exists(file_path):
-        Mat = get_fp_similarity(fp_dict_combined, method='procrustes')
+        Mat = get_fp_similarity(fp_dict_combined, method='procrustes', seed=seed)
         pickle.dump(Mat, open(file_path, "wb+"))
     ray.shutdown()
 

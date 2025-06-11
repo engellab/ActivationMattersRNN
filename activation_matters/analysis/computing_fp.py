@@ -1,5 +1,6 @@
 from pathlib import Path
 import numpy as np
+import torch
 from omegaconf import OmegaConf
 from trainRNNbrain.rnns import RNN_torch
 from trainRNNbrain.training.training_utils import prepare_task_arguments
@@ -27,7 +28,8 @@ def process_network(i,
                     connectivity_dict,
                     dataset,
                     cfg,
-                    task):
+                    task,
+                    seed=42):
     if control:
         file_path = os.path.join(data_save_folder,
                                  f"{activation_name}_constrained={constrained}_controlType={control_type}_control={control}_fpstruct_{dataSegment}_n={i}.pkl")
@@ -35,7 +37,7 @@ def process_network(i,
         file_path = os.path.join(data_save_folder,
                                  f"{activation_name}_constrained={constrained}_control={control}_fpstruct_{dataSegment}_n={i}.pkl")
 
-
+    generator = torch.Generator(device='cpu')
     if not os.path.isfile(file_path):
         # Extract connectivity matrices
         if control == False:
@@ -43,16 +45,19 @@ def process_network(i,
         else:
             W_inp, W_rec, W_out = (connectivity_dict[activation_name][tp][i] for tp in ["inp", "rec", "out"])
             if control_type == 'shuffled':
-                W_inp, W_rec, W_out = shuffle_connectivity(W_inp, W_rec, W_out)
+                W_inp, W_rec, W_out = shuffle_connectivity(W_inp, W_rec, W_out, seed=seed + i)
             elif control_type == 'random':
+                generator.manual_seed(seed + i)
                 if constrained:
                     W_rec, W_inp, W_out, _, _, _, _ = RNN_torch.get_connectivity_Dale(N=W_inp.shape[0],
                                                                                       num_inputs=task.n_inputs,
-                                                                                      num_outputs=task.n_outputs)
+                                                                                      num_outputs=task.n_outputs,
+                                                                                      generator=generator)
                 else:
                     W_rec, W_inp, W_out, _, _, _ = RNN_torch.get_connectivity(N=W_inp.shape[0],
                                                                               num_inputs=task.n_inputs,
-                                                                              num_outputs=task.n_outputs)
+                                                                              num_outputs=task.n_outputs,
+                                                                              generator=generator)
                 W_inp = W_inp.detach().cpu().numpy()
                 W_rec = W_rec.detach().cpu().numpy()
                 W_out = W_out.detach().cpu().numpy()
@@ -120,6 +125,7 @@ save = True
 def computing_fp(cfg):
     os.environ["NUMEXPR_MAX_THREADS"] = "50"
     os.environ["RAY_DEDUP_LOGS"] = "0"
+    seed = cfg.seed
     n_nets = cfg.n_nets
     dataSegment = cfg.dataSegment
     taskname = cfg.task.taskname
@@ -134,7 +140,10 @@ def computing_fp(cfg):
     if hasattr(task, 'random_window'):
         task.random_window = 0 # no randomness in the task structure for the analysis
 
-    ray.init(ignore_reinit_error=True, address="auto")
+    if not cfg.paths.local:
+        ray.init(ignore_reinit_error=True, address="auto")
+    else:
+        ray.init(ignore_reinit_error=True)
     print(ray.available_resources())
 
     connectivity_dict = {}
@@ -163,7 +172,8 @@ def computing_fp(cfg):
                                                   connectivity_dict,
                                                   dataset,
                                                   cfg,
-                                                  task)
+                                                  task,
+                                                  seed)
                            for i in range(n_nets)]
 
                 # Retrieve results as they become available

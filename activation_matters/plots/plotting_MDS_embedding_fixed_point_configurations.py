@@ -24,7 +24,8 @@ def run_mds_and_plot(cfg, attempt, img_name, Mat, img_save_folder, inds_list, le
     set_up_plotting_styles(cfg.paths.style_path)
     # Run MDS
     img_name = re.sub(r"XXX", str(attempt), img_name)
-    mds = MDS(n_components=2, dissimilarity='precomputed', n_init=101, eps=1e-6, max_iter=1000)
+    mds = MDS(n_components=2, dissimilarity='precomputed',
+              n_init=101, eps=1e-6, max_iter=1000, random_state=attempt)
     mds.fit(Mat)
     embedding = mds.embedding_
 
@@ -70,7 +71,10 @@ def plot_fixed_point_configurations(cfg):
     np.fill_diagonal(Mat, 0)
 
     img_name = f"MDS_fp_attempt=XXX_nPCs={n_components}_{dataSegment}{n_nets}_{control_type}.pdf"
-    ray.init(ignore_reinit_error=True, address="auto")
+    if not cfg.paths.local:
+        ray.init(ignore_reinit_error=True, address="auto")
+    else:
+        ray.init(ignore_reinit_error=True)
     print(ray.available_resources())
     # Launch tasks in parallel
     results = [

@@ -15,7 +15,8 @@ def run_mds_and_plot(cfg, attempt, img_name, Mat, img_save_folder, inds_list, le
     set_up_plotting_styles(cfg.paths.style_path)
     # Run MDS
     img_name = re.sub(r"XXX", str(attempt), img_name)
-    mds = MDS(n_components=2, dissimilarity='precomputed', n_init=101, eps=1e-6, max_iter=1000)
+    mds = MDS(n_components=2, dissimilarity='precomputed',
+              n_init=101, eps=1e-6, max_iter=1000, random_state=attempt)
     mds.fit(Mat)
     embedding = mds.embedding_
 
@@ -30,14 +31,13 @@ feature_type = 'trajectory_endpoints'
 def plot_trajectory_endpoints(cfg):
     show = False
     save = True
-    n_dim = 2
     taskname = cfg.task.taskname
     n_nets = cfg.n_nets
     dataSegment = cfg.dataSegment
     control_type = cfg.control_type
     aux_datasets_folder = os.path.join(cfg.paths.auxilliary_datasets_path, taskname)
     img_save_folder = os.path.join(cfg.paths.img_folder, taskname)
-
+    seed = cfg.seed
     # defining the task
     task_conf = prepare_task_arguments(cfg_task=cfg.task, dt=cfg.task.dt)
     task = hydra.utils.instantiate(task_conf)
@@ -45,12 +45,13 @@ def plot_trajectory_endpoints(cfg):
         task.coherences = np.array([-1, -0.5, 0, 0.5, 1.0])
     if hasattr(task, 'random_window'):
         task.random_window = 0
-    task.seed = 0 # for consistency
+    task.seed = seed # for consistency
     inputs, targets, conditions = task.get_batch()
 
     data_dict = pickle.load(open(os.path.join(aux_datasets_folder, f"{feature_type}_{dataSegment}{n_nets}_{control_type}.pkl"), "rb+"))
     legends = data_dict["legends"]
     inds_list = data_dict["inds_list"]
+
     # features_processed = data_dict[f"RNN_{feature_type}_processed"]
     # plotting the trajectories
     # for k, legend in enumerate(legends):
@@ -86,7 +87,10 @@ def plot_trajectory_endpoints(cfg):
 
     np.fill_diagonal(Mat, 0)
     img_name = f"MDS_{feature_type}_attempt=XXX_{dataSegment}{n_nets}_{control_type}.pdf"
-    ray.init(ignore_reinit_error=True, address="auto")
+    if not cfg.paths.local:
+        ray.init(ignore_reinit_error=True, address="auto")
+    else:
+        ray.init(ignore_reinit_error=True)
     print(ray.available_resources())
 
     # Launch tasks in parallel
@@ -94,7 +98,6 @@ def plot_trajectory_endpoints(cfg):
         run_mds_and_plot.remote(cfg, attempt, img_name, Mat, img_save_folder,
                                 inds_list, legends, colors, hatch, markers, save, show)
         for attempt in range(3)]
-    # Retrieve results (if needed)
     embeddings = ray.get(results)
     ray.shutdown()
     return None

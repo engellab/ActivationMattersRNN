@@ -36,27 +36,27 @@ def normalize_color(color):
         return color
     return [c / 255.0 for c in color]
 
-def plot_projected_trajectories(trajectories_projected,
-                                legend,
-                                axes=(0, 1),
-                                save=False, path=None,
-                                line_colors=None,
-                                point_colors=None,
-                                markers=None,
-                                linewidth=0.75,
-                                linewidth_edge=0.1,
-                                markersize = 25,
-                                alpha=0.9,
-                                n_dim=2,
-                                show=True):
+def plot_trajectories(trajectories,
+                      legend,
+                      axes=(0, 1),
+                      save=False, path=None,
+                      line_colors=None,
+                      point_colors=None,
+                      markers=None,
+                      linewidth=0.75,
+                      linewidth_edge=0.1,
+                      markersize = 25,
+                      alpha=0.9,
+                      n_dim=2,
+                      show=True):
     if n_dim == 2:
         fig, ax = plt.subplots(1, 1, figsize=(2, 2))
     else:
         fig = plt.figure(figsize=(2, 2))
         ax = plt.axes(projection='3d')
         ax.view_init(45, -135)
-    for trial in range(trajectories_projected.shape[-1]):
-        trajectory = trajectories_projected[:, :, trial]
+    for trial in range(trajectories.shape[-1]):
+        trajectory = trajectories[:, :, trial]
         if not (point_colors is None):
             distances = np.sqrt(np.sum([np.diff(trajectory[i])**2 for i in range(n_dim)], axis = 0))
             cumulative_distance = np.insert(np.cumsum(distances), 0, 0)
@@ -75,7 +75,7 @@ def plot_projected_trajectories(trajectories_projected,
     axes_names = ["x", "y", "z"][:n_dim]
     for a, axis in enumerate(axes_names):
         for postfix in ["min", "max"]:
-            exec(f"{axis}_{postfix} = np.{postfix}(trajectories_projected[{axes[a]}, ...])")
+            exec(f"{axis}_{postfix} = np.{postfix}(trajectories[{axes[a]}, ...])")
         exec(f"{axis}_range = 1.2 * np.abs(({axis}_max - {axis}_min))")
         exec(f"{axis}_mean = ({axis}_min + {axis}_max) / 2")
     for a, axis in enumerate(axes_names):
@@ -92,6 +92,103 @@ def plot_projected_trajectories(trajectories_projected,
         fig.savefig(path, transparent=True, dpi=300)
     plt.close(fig)
     return None
+
+def plot_selectivities(selectivities, axes=(0, 1), labels=None, show=True, save=False, path=None, s=20, alpha=0.5, n_dim=2):
+    # Get the 'tab20' colormap
+    cmap = plt.get_cmap('tab20')
+    # Generate a list of 18 colors
+    colors = [cmap(i) for i in range(20)]
+    colors = [colors[(i + 6) % len(colors)] for i in range(len(colors))]
+    if not (labels is None):
+        n_clusters = len(np.unique(labels))
+    else:
+        n_clusters = 1
+        labels = np.zeros(selectivities.shape[0])
+    if n_clusters == 1:
+        colors = [[0.8, 0.2, 0.3]]
+
+    if n_dim == 2:
+        fig, ax = plt.subplots(1, 1, figsize=(3, 3))
+    elif n_dim == 3:
+        fig = plt.figure(figsize=(2, 2))
+        ax = plt.axes(projection='3d')
+        ax.view_init(45, -135)
+
+    for i in range(n_clusters):
+        inds = np.where(np.array(labels) == i)[0]
+        try:
+            ax.scatter(*[selectivities[inds, axes[d]] for d in range(n_dim)],
+                       edgecolors='k', color=colors[i], s=s, alpha=alpha, linewidths=0.1)
+        except:
+            ax.scatter(*[selectivities[inds, axes[d]] for d in range(n_dim)],
+                       edgecolors='k', color=colors[i], s=s, alpha=alpha, linewidths=0.1)
+
+    # ax.set_title("Selectivities", loc='center')
+    # ax.set_xlabel("PC1")
+    # ax.set_ylabel("PC2")
+    axes_names = ["x", "y", "z"][:n_dim]
+    for a, axis in enumerate(axes_names):
+        for postfix in ["min", "max"]:
+            exec(f"{axis}_{postfix} = np.{postfix}(selectivities[:, {axes[a]}])")
+        exec(f"{axis}_range = 1.2 * np.abs(({axis}_max - {axis}_min))")
+        exec(f"{axis}_mean = ({axis}_min + {axis}_max) / 2")
+    for a, axis in enumerate(axes_names):
+        exec(f"{axis}_min_new = ({axis}_mean - {axis}_range / 2)")
+        exec(f"{axis}_max_new = ({axis}_mean + {axis}_range / 2)")
+        exec(f"ax.set_{axis}lim([{axis}_min_new, {axis}_max_new])")
+        exec(f"ax.set_{axis}ticks([])")
+        exec(f"ax.set_{axis}ticklabels([])")
+    if save:
+        plt.savefig(path, dpi=300, transparent=True, bbox_inches='tight')
+        path_png = path.split(".pdf")[0] + ".png"
+        plt.savefig(path_png, dpi=300, transparent=True, bbox_inches='tight')
+    if show:
+        plt.show()
+    plt.close()
+    return None
+
+def plot_endpoints(endpoints,
+                   face_colors,
+                   edge_colors,
+                   markers,
+                   axes=(0, 1),
+                   s=50,
+                   alpha=0.7,
+                   show=True,
+                   save=False,
+                   path=None,
+                   n_dim=2):
+    if n_dim == 3:
+        fig = plt.figure(figsize=(2, 2))
+        ax = plt.axes(projection='3d')
+        ax.view_init(45, -135)
+    elif n_dim == 2:
+        fig, ax = plt.subplots(figsize=(2, 2))
+    for marker in set(markers):
+        inds = np.where(np.array(markers) == marker)[0]
+        ax.scatter(*[endpoints[inds, axes[d]] for d in range(n_dim)],
+                   color=[face_colors[i] for i in inds],
+                   edgecolor=[edge_colors[i] for i in inds] , marker=marker, s=s, alpha=alpha, linewidths=1)
+    axes_names = ["x", "y", "z"][:n_dim]
+    for a, axis in enumerate(axes_names):
+        for postfix in ["min", "max"]:
+            exec(f"{axis}_{postfix} = np.{postfix}(endpoints[:, {a}])")
+        exec(f"{axis}_range = 1.2 * ({axis}_max - {axis}_min)")
+        exec(f"{axis}_mean = ({axis}_min + {axis}_max) / 2")
+    for a, axis in enumerate(["x", "y"]):
+        exec(f"{axis}_min_new = ({axis}_mean - {axis}_range / 2)")
+        exec(f"{axis}_max_new = ({axis}_mean + {axis}_range / 2)")
+        exec(f"ax.set_{axis}lim([{axis}_min_new, {axis}_max_new])")
+        exec(f"ax.set_{axis}ticks([])")
+        exec(f"ax.set_{axis}ticklabels([])")
+    if show:
+        plt.show()
+    if save:
+        fig.savefig(path, dpi=300, transparent=True, bbox_inches='tight')
+        path_png = path.split(".pdf")[0] + ".png"
+        plt.savefig(path_png, dpi=300, transparent=True, bbox_inches='tight')
+    plt.close()
+    return False
 
 def plot_similarity_matrix(Mat, save=False, path=None, show=True):
     np.fill_diagonal(Mat, np.nanmean(Mat))
@@ -155,98 +252,6 @@ def plot_embedding(embedding, inds_list, legends, colors, hatch=None, markers=No
         plt.show()
     plt.close(fig)
     return None
-
-def plot_representations(F, axes=(0, 1), labels=None, show=True, save=False, path=None, s=10, alpha=0.5, n_dim=2):
-    # Get the 'tab20' colormap
-    cmap = plt.get_cmap('tab20')
-    # Generate a list of 18 colors
-    colors = [cmap(i) for i in range(20)]
-    colors = [colors[(i + 6) % len(colors)] for i in range(len(colors))]
-    if not (labels is None):
-        n_clusters = len(np.unique(labels))
-    else:
-        n_clusters = 1
-        labels = np.zeros(F.shape[0])
-    if n_clusters == 1:
-        colors = [[0.8, 0.2, 0.3]]
-
-    if n_dim == 2:
-        fig, ax = plt.subplots(1, 1, figsize=(3, 3))
-    elif n_dim == 3:
-        fig = plt.figure(figsize=(2, 2))
-        ax = plt.axes(projection='3d')
-        ax.view_init(45, -135)
-
-    for i in range(n_clusters):
-        inds = np.where(np.array(labels) == i)[0]
-        ax.scatter(*[F[inds, axes[d]] for d in range(n_dim)],
-                   edgecolors='k', color=colors[i], s=s, alpha=alpha, linewidths=0.1)
-
-    # ax.set_title("Neural trajectory representations", loc='center')
-    # ax.set_xlabel("PC1")
-    # ax.set_ylabel("PC2")
-    axes_names = ["x", "y", "z"][:n_dim]
-    for a, axis in enumerate(axes_names):
-        for postfix in ["min", "max"]:
-            exec(f"{axis}_{postfix} = np.{postfix}(F[:, {axes[a]}])")
-        exec(f"{axis}_range = 1.2 * np.abs(({axis}_max - {axis}_min))")
-        exec(f"{axis}_mean = ({axis}_min + {axis}_max) / 2")
-    for a, axis in enumerate(axes_names):
-        exec(f"{axis}_min_new = ({axis}_mean - {axis}_range / 2)")
-        exec(f"{axis}_max_new = ({axis}_mean + {axis}_range / 2)")
-        exec(f"ax.set_{axis}lim([{axis}_min_new, {axis}_max_new])")
-        exec(f"ax.set_{axis}ticks([])")
-        exec(f"ax.set_{axis}ticklabels([])")
-    if save:
-        plt.savefig(path, dpi=300, transparent=True, bbox_inches='tight')
-        path_png = path.split(".pdf")[0] + ".png"
-        plt.savefig(path_png, dpi=300, transparent=True, bbox_inches='tight')
-    if show:
-        plt.show()
-    plt.close()
-    return None
-
-def plot_stimuli_representations(PCA_stimuli,
-                                 face_colors,
-                                 edge_colors,
-                                 markers,
-                                 s=50,
-                                 alpha=0.7,
-                                 show=True,
-                                 save=False,
-                                 path=None,
-                                 n_dim=2):
-    if n_dim == 3:
-        fig = plt.figure(figsize=(2, 2))
-        ax = plt.axes(projection='3d')
-        ax.view_init(45, -135)
-    elif n_dim == 2:
-        fig, ax = plt.subplots(figsize=(2, 2))
-    for marker in set(markers):
-        inds = np.where(np.array(markers) == marker)[0]
-        ax.scatter(*[PCA_stimuli[inds, i] for i in range(n_dim)],
-                   color=[face_colors[i] for i in inds],
-                   edgecolor=[edge_colors[i] for i in inds] , marker=marker, s=s, alpha=alpha, linewidths=1)
-    axes_names = ["x", "y", "z"][:n_dim]
-    for a, axis in enumerate(axes_names):
-        for postfix in ["min", "max"]:
-            exec(f"{axis}_{postfix} = np.{postfix}(PCA_stimuli[:, {a}])")
-        exec(f"{axis}_range = 1.2 * ({axis}_max - {axis}_min)")
-        exec(f"{axis}_mean = ({axis}_min + {axis}_max) / 2")
-    for a, axis in enumerate(["x", "y"]):
-        exec(f"{axis}_min_new = ({axis}_mean - {axis}_range / 2)")
-        exec(f"{axis}_max_new = ({axis}_mean + {axis}_range / 2)")
-        exec(f"ax.set_{axis}lim([{axis}_min_new, {axis}_max_new])")
-        exec(f"ax.set_{axis}ticks([])")
-        exec(f"ax.set_{axis}ticklabels([])")
-    if show:
-        plt.show()
-    if save:
-        fig.savefig(path, dpi=300, transparent=True, bbox_inches='tight')
-        path_png = path.split(".pdf")[0] + ".png"
-        plt.savefig(path_png, dpi=300, transparent=True, bbox_inches='tight')
-    plt.close()
-    return False
 
 def plot_intercluster_connectivity(ic_W_inp, ic_W_rec, ic_W_out, labels_unraveled, th=0.15, show=True, save=False, path=None):
     idxs = get_ordering(ic_W_inp, th = th)
@@ -409,9 +414,12 @@ def plot_fixed_points(fixed_point_struct, fp_labels,
                       edgecolors=None,
                       n_dim=2, show=True, save=False, path=None):
     # PCA
-    pca = PCA(n_components=n_dim)
-    pca.fit(fixed_point_struct)
-    data = fixed_point_struct @ pca.components_.T
+    if fixed_point_struct.shape[0] > 1:
+        pca = PCA(n_components=n_dim)
+        pca.fit(fixed_point_struct)
+        data = fixed_point_struct @ pca.components_.T
+    else:
+        return None
 
     if n_dim == 2:
         fig, ax = plt.subplots(1, 1, figsize=(2, 2))
@@ -483,7 +491,10 @@ def plot_aligned_FPs(fp_list,
 
             color_ind = int(label.split("_")[1])
             marker = markers[color_ind][0] if "sfp" in label else markers[color_ind][1]
-            edgecolor = normalize_color(list(edgecolors[color_ind][0] if "sfp" in label else edgecolors[color_ind][1]))
+            if not (edgecolors is None):
+                edgecolor = normalize_color(list(edgecolors[color_ind][0] if "sfp" in label else edgecolors[color_ind][1]))
+            else:
+                edgecolor = 'k'
             color = colors_unstable[color_ind] if "ufp" in label else colors_stable[color_ind]
             ax.scatter(*(fp_list_registered[i][inds, k] for k in range(n_dim)),
                        marker=marker,
@@ -541,10 +552,12 @@ def plot_psychometric_data(psychometric_data, show=True, save=False, path=None):
 
     axes[0].set_yticks(tick_inds)
     axes[0].set_yticklabels(ticks)
+    # axes[0].set_yticklabels([])
     axes[1].set_yticks([])
     for i in range(2):
         axes[i].set_xticks(tick_inds)
-        axes[i].set_xticklabels(ticks, rotation=90)
+        axes[i].set_xticklabels(ticks)
+        # axes[i].set_xticklabels([])
 
     if show:
         plt.show()
