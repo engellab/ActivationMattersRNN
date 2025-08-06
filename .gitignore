@@ -190,3 +190,9 @@ activation_matters/.DS_Store
 *.jpg
 *.jpeg
 *.pdf
+/img/
+/img/CDDM/
+/img/GoNoGo/
+/img/MemoryNumber/
+*.pdf
+*.png
